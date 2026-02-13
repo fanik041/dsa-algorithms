@@ -1,4 +1,4 @@
-public package algorithms;
+package algorithms;
 
 class InnerLinearSearch {
 

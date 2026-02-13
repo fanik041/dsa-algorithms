@@ -1,8 +1,12 @@
-// aabbcdd
+import java.util.HashMap;
+import java.util.Map;
 
 class FirstUniqChar {
 
-    public static String firstNonRepeatChar(string myChar) {
+    // Private constructor to prevent instantiation
+    private FirstUniqChar() {}
+
+    public static String firstNonRepeatChar(String myChar) {
         Map<Character, Integer> charCountMap = new HashMap<>();
 
         for (char c : myChar.toCharArray()) {

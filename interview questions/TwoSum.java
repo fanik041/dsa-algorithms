@@ -1,15 +1,16 @@
-import java.util*
+import java.util.Map;
+import java.util.HashMap;
 
 class TwoSum {
 
     static int[] twoSum(int[] nums, int target) {
         Map<Integer, Integer> indexByVal = new HashMap<>();
-        for int(i=0; i<nums.length; i++) {
+        for (int i = 0; i < nums.length; i++) {
             int complement = target - nums[i];
-            if indexByVal.containsKey(complement) {
+            if (indexByVal.containsKey(complement)) {
                 return new int[] {
-                    indexByVal.get(complement), i;
-                }
+                    indexByVal.get(complement), i
+                };
             }
             indexByVal.put(nums[i], i);
         }
