@@ -1,4 +1,4 @@
-package algorithms;
+package Arrays;
 
 
 // Kadane’s algorithm

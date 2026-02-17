@@ -1,4 +1,4 @@
-package algorithms;
+package Arrays;
 
 public class SlidingWindow {
     public static int findMaxSum(int[] arr, int k) {
