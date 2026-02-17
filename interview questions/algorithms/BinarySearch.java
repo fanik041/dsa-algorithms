@@ -3,13 +3,17 @@ package algorithms;
 public class BinarySearch {
     
     public static int binarySearchArr(int[] arr, int target) {
+        // take index of array
         int left = 0;
         int right = arr.length - 1;
-
+        // navigate via index value
         while(left<=right) {
+            // calculate the median index
             int median = left + (right - left) / 2;
             if (arr[median] == target) {
                 return median;
+                // only difference between this and two-pointers is that it moves from
+                // the middle instead of the ends
             } else if (arr[median] < target) {
                 left = median + 1;
             } else {

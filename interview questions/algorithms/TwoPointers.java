@@ -5,11 +5,15 @@ public class TwoPointers {
     public static int[] twoSumOfNumbers(int[] numbers, int target) {
         int left = 0;
         int right = numbers.length -1;
-
+        //moves via index value
         while (left<right) {
+            // calculates the sum and checks with target
             int sumOfTwo = numbers[left] + numbers [right];
             if (sumOfTwo == target) {
                 return new int[] {left+1, right +1};
+                //pointer moves based on sum values rather then index, the only
+                // difference between this and binary search is that 
+                // it moves from the ends instead of the middle. 
             } else if (sumOfTwo < target) {
                 left++;
             } else {
