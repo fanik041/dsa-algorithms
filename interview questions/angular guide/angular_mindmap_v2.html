@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Angular Mind Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070b16;--bg2:#0c1120;--card:#111827;
+  --p1:#f59e0b;  /* Modularity     amber   */
+  --p2:#a855f7;  /* Components     purple  */
+  --p3:#3b82f6;  /* RxJS           blue    */
+  --p4:#10b981;  /* DI             green   */
+  --p5:#f43f5e;  /* HTML/CSS       rose    */
+  --p6:#06b6d4;  /* Routing        cyan    */
+  --p7:#ff6b35;  /* Performance    orange  */
+  --p8:#8b5cf6;  /* TypeScript     violet  */
+  --text:#e2e8f0;--muted:#64748b;--border:rgba(255,255,255,0.06);
+}
+html,body{width:100%;height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);overflow:hidden}
+
+/* ── TOPBAR ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:50px;background:rgba(7,11,22,0.95);
+  backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px;
+}
+#topbar h1{font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.12em;color:#94a3b8;white-space:nowrap}
+#topbar h1 span{color:#e2e8f0}
+.legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;flex:1;justify-content:center}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);cursor:pointer;padding:3px 8px;border-radius:20px;transition:background .2s}
+.leg:hover{background:rgba(255,255,255,.05)}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ctrls{display:flex;gap:6px}
+.cbtn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);padding:4px 11px;border-radius:6px;font-size:12px;cursor:pointer;transition:background .2s;white-space:nowrap}
+.cbtn:hover{background:rgba(255,255,255,.1)}
+
+/* ── CANVAS ── */
+#canvas{position:fixed;top:50px;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+#canvas:active{cursor:grabbing}
+#world{position:absolute;width:5000px;height:5000px;transform-origin:0 0}
+#lines{position:absolute;top:0;left:0;width:5000px;height:5000px;pointer-events:none}
+
+/* ── CENTER ── */
+.center-node{
+  position:absolute;transform:translate(-50%,-50%);
+  width:150px;height:150px;border-radius:50%;
+  background:radial-gradient(circle at 40% 40%,#1a2035,#0c1120);
+  border:1.5px solid rgba(255,255,255,0.12);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;z-index:10;
+  box-shadow:0 0 80px rgba(168,85,247,.08),0 0 160px rgba(59,130,246,.05);
+}
+.center-node .logo{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;
+  background:linear-gradient(135deg,#f59e0b,#a855f7,#3b82f6,#10b981);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.center-node .sub{font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
+
+/* ── PILLAR ── */
+.pillar{position:absolute;transform:translate(-50%,-50%);z-index:9;cursor:pointer}
+.pillar-ring{
+  width:100px;height:100px;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:2px solid transparent;
+  background:var(--card);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s,border-color .3s;
+  position:relative;
+}
+.pillar:hover .pillar-ring{transform:scale(1.14)}
+.pillar.active .pillar-ring{transform:scale(1.16)}
+.pillar-icon{font-size:24px;line-height:1}
+.pillar-lbl{font-family:'Space Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:4px;text-align:center;padding:0 6px;line-height:1.4}
+
+/* ── TOPIC ── */
+.topic{
+  position:absolute;transform:translate(-50%,-50%);z-index:8;cursor:pointer;
+  opacity:0;pointer-events:none;
+  transition:opacity .28s ease,transform .28s cubic-bezier(.34,1.56,.64,1);
+}
+.topic.visible{opacity:1;pointer-events:all}
+.topic-box{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:9px;padding:7px 13px;
+  font-size:11.5px;font-weight:500;white-space:nowrap;
+  border-left-width:3px;border-left-style:solid;
+  transition:transform .18s,box-shadow .18s,background .18s;
+}
+.topic:hover .topic-box{transform:scale(1.07);box-shadow:0 6px 24px rgba(0,0,0,.5);background:#1a2035}
+.topic.active .topic-box{background:#1a2035;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+
+/* ── DETAIL ── */
+.detail{
+  position:absolute;transform:translate(-50%,-50%);z-index:7;
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+.detail.visible{opacity:1}
+.detail-box{
+  background:rgba(12,17,32,.9);border:1px solid var(--border);
+  border-radius:7px;padding:5px 10px;
+  font-size:10.5px;color:#94a3b8;white-space:nowrap;
+  max-width:200px;white-space:normal;line-height:1.5;
+}
+
+/* ── PANEL ── */
+#panel{
+  position:fixed;bottom:20px;right:20px;width:310px;
+  background:rgba(11,16,28,.97);border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:18px 18px 16px;z-index:300;
+  opacity:0;transform:translateY(10px);pointer-events:none;
+  transition:opacity .22s,transform .22s;backdrop-filter:blur(16px);
+}
+#panel.show{opacity:1;transform:translateY(0);pointer-events:all}
+#panel-title{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;margin-bottom:9px;line-height:1.4}
+#panel-body{font-size:11.5px;color:#94a3b8;line-height:1.7}
+#panel-body ul{padding-left:15px}
+#panel-body li{margin-bottom:2px}
+#panel-body code{font-family:'Space Mono',monospace;font-size:10px;background:rgba(255,255,255,.06);padding:1px 4px;border-radius:3px;color:#e2e8f0}
+#pclose{position:absolute;top:12px;right:14px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;transition:color .2s}
+#pclose:hover{color:var(--text)}
+
+/* ── HINT ── */
+#hint{position:fixed;bottom:20px;left:20px;font-size:11px;color:#334155;line-height:2;pointer-events:none}
+#hint span{display:block}
+
+/* SVG */
+.ln{stroke-width:1.5;fill:none;opacity:.3}
+.lt{stroke-width:1;fill:none;opacity:0;transition:opacity .3s;stroke-dasharray:none}
+.lt.visible{opacity:.22}
+.ld{stroke-width:.8;fill:none;opacity:0;stroke-dasharray:3 5;transition:opacity .3s}
+.ld.visible{opacity:.18}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>Angular <span>Mind Map</span></h1>
+  <div class="legend" id="legend"></div>
+  <div class="ctrls">
+    <button class="cbtn" onclick="resetView()">⌂ Reset</button>
+    <button class="cbtn" onclick="expandAll()">⊕ Expand All</button>
+    <button class="cbtn" onclick="collapseAll()">⊗ Collapse</button>
+  </div>
+</div>
+
+<div id="canvas">
+  <div id="world">
+    <svg id="lines"></svg>
+  </div>
+</div>
+
+<div id="panel">
+  <button id="pclose" onclick="closePanel()">×</button>
+  <div id="panel-title"></div>
+  <div id="panel-body"></div>
+</div>
+
+<div id="hint">
+  <span>🖱 Click pillar to expand</span>
+  <span>🔍 Click topic for details</span>
+  <span>✋ Drag to pan · Scroll to zoom</span>
+</div>
+
+<script>
+const CX=2500,CY=2500;
+
+const PILLARS=[
+  {
+    id:'mod',label:'Modularity',icon:'🧩',color:'--p1',hex:'#f59e0b',angle:270,
+    topics:[
+      {id:'mod-app',label:'AppModule',angle:240,
+       detail:['Bootstraps AppComponent','BrowserModule — once only','RouterModule.forRoot()','Imports CoreModule'],
+       tip:{t:'AppModule — The Root',b:'<ul><li>Entry point — starts the entire app</li><li>Declares only <code>AppComponent</code></li><li>Imports <code>BrowserModule</code> once (never in features)</li><li>Imports <code>CoreModule</code> exactly once</li><li>Sets up <code>RouterModule.forRoot(routes)</code></li></ul>'}},
+      {id:'mod-core',label:'CoreModule',angle:258,
+       detail:['Singleton services only','HTTP Interceptors','@SkipSelf() guard','Imported once in AppModule'],
+       tip:{t:'CoreModule — Singleton Layer',b:'<ul><li>Houses all app-wide singleton services</li><li>Auth, Logger, Theme services live here</li><li>HTTP Interceptors registered here</li><li>Import in AppModule only — constructor guard prevents double-import</li><li><code>@Optional() @SkipSelf() core: CoreModule</code></li></ul>'}},
+      {id:'mod-shared',label:'SharedModule',angle:276,
+       detail:['Shared components & pipes','Re-exports CommonModule','Never register services here','Imported by every feature'],
+       tip:{t:'SharedModule — Reusable Toolkit',b:'<ul><li>Common UI: Button, Spinner, Modal components</li><li>Shared pipes and directives</li><li>Re-exports <code>CommonModule</code>, <code>FormsModule</code></li><li>⚠️ Never put services here — multiple instances!</li><li>Imported by every feature module that needs it</li></ul>'}},
+      {id:'mod-feature',label:'Feature Modules',angle:294,
+       detail:['Domain ownership','RouterModule.forChild()','Lazy loaded on demand','Imports SharedModule'],
+       tip:{t:'Feature Modules — Domain Owners',b:'<ul><li>Own one business domain end-to-end</li><li>OrdersModule, UsersModule, PaymentsModule</li><li>Lazy loaded — only downloaded when needed</li><li><code>RouterModule.forChild(routes)</code></li><li>Feature-scoped services registered here</li></ul>'}},
+      {id:'mod-standalone',label:'Standalone (v14+)',angle:312,
+       detail:['standalone: true','bootstrapApplication()','imports: [] per component','loadComponent() lazy loading'],
+       tip:{t:'Standalone Components — Modern Angular',b:'<ul><li><code>standalone: true</code> — no NgModule needed</li><li>Each component declares own <code>imports: []</code></li><li><code>bootstrapApplication(AppComponent, appConfig)</code></li><li><code>app.config.ts</code> replaces AppModule + CoreModule</li><li><code>provideRouter(), provideHttpClient()</code></li></ul>'}},
+      {id:'mod-lazy',label:'Lazy Loading',angle:222,
+       detail:['loadChildren — feature module','loadComponent — standalone','Route-level code splitting','PreloadAllModules strategy'],
+       tip:{t:'Lazy Loading — Bundle Splitting',b:'<ul><li><code>loadChildren: () => import("./orders/orders.module")</code></li><li><code>loadComponent: () => import("./dashboard.component")</code></li><li>Reduces initial bundle — critical for performance</li><li>Preloading: <code>PreloadAllModules</code> loads lazily after idle</li></ul>'}},
+    ]
+  },
+  {
+    id:'comp',label:'Components',icon:'⚡',color:'--p2',hex:'#a855f7',angle:321,
+    topics:[
+      {id:'comp-lc',label:'Lifecycle Hooks',angle:295,
+       detail:['ngOnChanges — @Input change','ngOnInit — fetch data','ngAfterViewInit — DOM ready','ngOnDestroy — cleanup!'],
+       tip:{t:'Component Lifecycle Hooks',b:'<ul><li><code>ngOnChanges</code> — fires before init & on every @Input change</li><li><code>ngOnInit</code> — fetch data, setup subscriptions</li><li><code>ngDoCheck</code> — every CD cycle (expensive, avoid)</li><li><code>ngAfterViewInit</code> — @ViewChild available here</li><li><code>ngAfterContentInit</code> — @ContentChild available</li><li><code>ngOnDestroy</code> — unsubscribe, cancel timers, cleanup</li></ul>'}},
+      {id:'comp-io',label:'@Input / @Output',angle:310,
+       detail:['@Input({ required: true })','@Output() + EventEmitter','Two-way [(ngModel)]','input() signal (v17+)'],
+       tip:{t:'@Input & @Output Communication',b:'<ul><li><code>@Input()</code> — parent → child data</li><li><code>@Input({ required: true })</code> — enforce required prop</li><li><code>@Output() approved = new EventEmitter&lt;number&gt;()</code></li><li>Two-way: <code>[(ngModel)]</code> = @Input + @Output combined</li><li>Signal input: <code>name = input.required&lt;string&gt;()</code></li></ul>'}},
+      {id:'comp-cd',label:'Change Detection',angle:328,
+       detail:['Default — full tree check','OnPush — @Input ref / async','markForCheck() / detach()','NgZone.runOutsideAngular()'],
+       tip:{t:'Change Detection Strategy',b:'<ul><li><b>Default</b>: checks entire component tree on every event</li><li><b>OnPush</b>: only when @Input reference changes or async pipe emits</li><li><code>markForCheck()</code> — mark for next CD cycle</li><li><code>detectChanges()</code> — trigger immediately</li><li><code>NgZone.runOutsideAngular()</code> — skip CD for heavy loops</li><li>Signals bypass zone.js entirely</li></ul>'}},
+      {id:'comp-signals',label:'Signals (v17+)',angle:346,
+       detail:['signal() — reactive state','computed() — derived value','effect() — side effects','input() replaces @Input'],
+       tip:{t:'Angular Signals — Fine-grained Reactivity',b:'<ul><li><code>count = signal(0)</code> — reactive primitive</li><li><code>double = computed(() => count() * 2)</code></li><li><code>effect(() => console.log(count()))</code></li><li>No zone.js — no full-tree checks</li><li><code>input()</code> replaces <code>@Input()</code> decorator</li><li><code>output()</code> replaces <code>@Output()</code> decorator</li></ul>'}},
+      {id:'comp-vc',label:'ViewChild / ContentChild',angle:4,
+       detail:['@ViewChild — child component / DOM','@ViewChildren — QueryList','@ContentChild — ng-content','Available after ngAfterViewInit'],
+       tip:{t:'ViewChild & ContentChild',b:'<ul><li><code>@ViewChild(MyComp) comp!: MyComp</code></li><li><code>@ViewChild("myRef") el!: ElementRef</code></li><li><code>@ViewChildren(Item) items!: QueryList&lt;Item&gt;</code></li><li><code>@ContentChild</code> — access projected content</li><li>⚠️ Only available <b>after</b> <code>ngAfterViewInit</code></li></ul>'}},
+      {id:'comp-proj',label:'Content Projection',angle:22,
+       detail:['<ng-content> — default slot','select="[attr]" — named slots','ng-container — no DOM node','ng-template + ngTemplateOutlet'],
+       tip:{t:'Content Projection Patterns',b:'<ul><li><code>&lt;ng-content&gt;</code> — project any child content</li><li><code>&lt;ng-content select="[header]"&gt;</code> — named slot</li><li><code>ng-container</code> — structural wrapper, no DOM element</li><li><code>ng-template</code> — lazy template, render with <code>*ngTemplateOutlet</code></li></ul>'}},
+    ]
+  },
+  {
+    id:'rxjs',label:'RxJS',icon:'🌊',color:'--p3',hex:'#3b82f6',angle:12,
+    topics:[
+      {id:'rxjs-hotcold',label:'Hot vs Cold',angle:350,
+       detail:['Cold — each sub gets own stream','Hot — all share one stream','HTTP = cold; Subject = hot','shareReplay(1) cold→hot'],
+       tip:{t:'Hot vs Cold Observables',b:'<ul><li><b>Cold</b>: stream starts fresh per subscriber (HTTP calls, <code>of()</code>)</li><li><b>Hot</b>: stream already running, subscribers join mid-flow (WebSocket, Subject)</li><li>Analogy: Cold = Netflix (your own playback), Hot = Live TV</li><li>Convert cold→hot: <code>shareReplay(1)</code>, <code>share()</code></li></ul>'}},
+      {id:'rxjs-core',label:'Core Concepts',angle:5,
+       detail:['Observable — lazy stream','Observer — next/error/complete','Subscription — always unsubscribe','Subject — multicast'],
+       tip:{t:'Observable & Subject',b:'<ul><li><code>Observable</code> — nothing runs until subscribed</li><li><code>Subject</code> — both Observable AND Observer (multicast)</li><li><code>BehaviorSubject(val)</code> — holds last value, new subs get it immediately</li><li><code>ReplaySubject(n)</code> — replays last N emissions</li><li>Always unsubscribe — use <code>takeUntil(destroy$)</code></li></ul>'}},
+      {id:'rxjs-create',label:'Creation',angle:20,
+       detail:['of() — fixed values / mock data','from() — Promise or array','interval() — live dashboard poll','fromEvent() — DOM as stream'],
+       tip:{t:'Creation Operators',b:'<ul><li><code>of(1,2,3)</code> — mock data in unit tests</li><li><code>from(promise)</code> — wrap fetch() as Observable</li><li><code>interval(1000)</code> — poll API every second</li><li><code>timer(3000)</code> — show toast 3s then hide</li><li><code>fromEvent(btn,"click")</code> — DOM events as stream</li><li><code>EMPTY</code> — complete immediately (short-circuit)</li></ul>'}},
+      {id:'rxjs-xform',label:'Transformation',angle:35,
+       detail:['switchMap — search, cancel prev','mergeMap — parallel uploads','concatMap — ordered queue','exhaustMap — no double submit'],
+       tip:{t:'Transformation Operators',b:'<ul><li><code>map</code> — convert API response to UI model</li><li><code>scan</code> — running total (shopping cart accumulator)</li><li><code>switchMap</code> — search-as-you-type, cancels prev HTTP</li><li><code>mergeMap</code> — parallel file uploads (concurrent)</li><li><code>concatMap</code> — undo/redo queue (strict order)</li><li><code>exhaustMap</code> — prevent double form submit</li></ul>'}},
+      {id:'rxjs-filter',label:'Filtering',angle:50,
+       detail:['takeUntil(destroy$) — lifecycle','debounceTime(300) — search','distinctUntilChanged — no dupes','throttleTime — spam protection'],
+       tip:{t:'Filtering Operators',b:'<ul><li><code>filter</code> — only pass ORDER type events</li><li><code>take(1)</code> — one-shot, auto-complete</li><li><code>takeUntil(destroy$)</code> — auto-unsubscribe on destroy</li><li><code>debounceTime(300)</code> — wait for user to stop typing</li><li><code>throttleTime(1000)</code> — rate-limit button spam</li><li><code>distinctUntilChanged()</code> — skip if value unchanged</li></ul>'}},
+      {id:'rxjs-combo',label:'Combination',angle:65,
+       detail:['combineLatest — live filters','forkJoin — parallel API calls','withLatestFrom — enrich event','merge — multiple event sources'],
+       tip:{t:'Combination Operators',b:'<ul><li><code>combineLatest</code> — emit when any filter changes</li><li><code>forkJoin</code> — load user+orders+settings in parallel</li><li><code>withLatestFrom</code> — enrich click with current form value</li><li><code>merge</code> — keyboard AND button trigger same action</li><li><code>zip</code> — pair emissions by index (request+response logging)</li></ul>'}},
+      {id:'rxjs-err',label:'Error Handling',angle:80,
+       detail:['catchError — return fallback','retry(3) — flaky networks','retryWhen — exponential backoff','finalize — always cleanup'],
+       tip:{t:'Error Handling Operators',b:'<ul><li><code>catchError</code> — return cached data or empty array on fail</li><li><code>retry(3)</code> — retry flaky network call 3 times</li><li><code>retryWhen</code> — exponential backoff: 1s, 2s, 4s</li><li><code>finalize</code> — hide loading spinner regardless of outcome</li></ul>'}},
+      {id:'rxjs-multi',label:'Multicasting',angle:95,
+       detail:['BehaviorSubject — current user','shareReplay(1) — HTTP cache','Subject — event bus','ReplaySubject — history'],
+       tip:{t:'Multicasting & Subjects',b:'<ul><li><code>Subject</code> — event bus: <code>userLoggedOut$</code></li><li><code>BehaviorSubject(null)</code> — current auth user state</li><li><code>ReplaySubject(5)</code> — last 5 notifications for late subscribers</li><li><code>shareReplay(1)</code> — cache HTTP config, avoid duplicate calls</li><li><code>AsyncSubject</code> — only last value on complete (like Promise)</li></ul>'}},
+    ]
+  },
+  {
+    id:'di',label:'Dependency\nInjection',icon:'💉',color:'--p4',hex:'#10b981',angle:103,
+    topics:[
+      {id:'di-tree',label:'Injector Tree',angle:80,
+       detail:['Root — app singleton','Module — feature scoped','Element — component level','Resolution: El→Mod→Root→null'],
+       tip:{t:'Angular Injector Hierarchy',b:'<ul><li><b>Root injector</b> — app-wide singletons</li><li><b>Module injector</b> — feature-module scoped</li><li><b>Element injector</b> — component/directive level</li><li>Resolution walks up: Element → Module → Root → NullInjector (error)</li></ul>'}},
+      {id:'di-providers',label:'Provider Types',angle:95,
+       detail:['useClass — provide a class','useValue — static config','useFactory — build with fn','useExisting — alias token'],
+       tip:{t:'Provider Recipes',b:'<ul><li><code>useClass: MyService</code> — default, instantiates class</li><li><code>useValue: { apiUrl: "..." }</code> — static config object</li><li><code>useFactory: (dep) => new Svc(dep)</code> — dynamic creation</li><li><code>useExisting: OtherToken</code> — alias one token to another</li></ul>'}},
+      {id:'di-token',label:'InjectionToken',angle:110,
+       detail:['For non-class values','new InjectionToken<T>()','Use with @Inject()','Type-safe config injection'],
+       tip:{t:'InjectionToken — Non-class DI',b:'<ul><li>For strings, booleans, configs — not classes</li><li><code>const API_URL = new InjectionToken&lt;string&gt;("API_URL")</code></li><li><code>{ provide: API_URL, useValue: "https://api.co" }</code></li><li><code>constructor(@Inject(API_URL) private url: string)</code></li></ul>'}},
+      {id:'di-dec',label:'DI Decorators',angle:125,
+       detail:['@Optional() — null if missing','@Self() — this injector only','@SkipSelf() — look up tree','@Host() — stop at host boundary'],
+       tip:{t:'DI Modifier Decorators',b:'<ul><li><code>@Optional()</code> — returns null instead of error if not found</li><li><code>@Self()</code> — only look in current element injector</li><li><code>@SkipSelf()</code> — skip current, start from parent (CoreModule guard)</li><li><code>@Host()</code> — stop resolution at host component boundary</li></ul>'}},
+      {id:'di-scopes',label:'Provider Scopes',angle:140,
+       detail:["providedIn:'root' — singleton","providedIn:'platform' — shared","Component providers — own instance","providedIn:'any' — per lazy module"],
+       tip:{t:'Provider Scoping',b:"<ul><li><code>providedIn: 'root'</code> — one instance for entire app</li><li><code>providedIn: 'platform'</code> — shared across micro-frontends</li><li><code>providers: [MyService]</code> in @Component — new instance per tree</li><li><code>providedIn: 'any'</code> — one per lazy-loaded module</li></ul>"}},
+      {id:'di-adv',label:'Advanced DI',angle:60,
+       detail:['inject() — functional DI (v14+)','multi: true — interceptors','forwardRef() — circular deps','Tree-shakable providers'],
+       tip:{t:'Advanced DI Patterns',b:'<ul><li><code>inject(MyService)</code> — use DI outside constructor (v14+)</li><li><code>{ provide: HTTP_INTERCEPTORS, useClass: AuthInt, multi: true }</code></li><li><code>forwardRef(() => MyClass)</code> — resolve circular dependencies</li><li>Tree-shakable: <code>@Injectable({ providedIn: "root" })</code> no NgModule import needed</li></ul>'}},
+    ]
+  },
+  {
+    id:'html',label:'HTML & CSS',icon:'🎨',color:'--p5',hex:'#f43f5e',angle:194,
+    topics:[
+      {id:'html-tmpl',label:'Template Syntax',angle:165,
+       detail:['{{ }} interpolation','[prop] property binding','(event) event binding','[(ngModel)] two-way'],
+       tip:{t:'Angular Template Syntax',b:'<ul><li><code>{{ value }}</code> — interpolation (string output)</li><li><code>[src]="url"</code> — property binding (one-way in)</li><li><code>(click)="fn()"</code> — event binding (one-way out)</li><li><code>[(ngModel)]="val"</code> — two-way binding</li><li><code>#myRef</code> — template reference variable</li></ul>'}},
+      {id:'html-cf',label:'Control Flow',angle:180,
+       detail:['@if / @else (v17+)','@for + track (v17+)','@switch / @case','@defer — lazy template'],
+       tip:{t:'Control Flow Syntax',b:'<ul><li><code>@if (isAdmin) { } @else { }</code> — replaces *ngIf</li><li><code>@for (item of items; track item.id) { }</code> — replaces *ngFor</li><li><code>@switch (status) { @case ("active") { } }</code></li><li><code>@defer (on viewport) { &lt;HeavyComp /&gt; }</code> — lazy load on scroll</li></ul>'}},
+      {id:'html-dir',label:'Directives',angle:195,
+       detail:['*ngIf, *ngFor (legacy)','[ngClass], [ngStyle]','Custom structural directive','Custom attribute directive'],
+       tip:{t:'Built-in & Custom Directives',b:'<ul><li>Structural: <code>*ngIf</code>, <code>*ngFor</code>, <code>*ngSwitch</code> — change DOM structure</li><li>Attribute: <code>[ngClass]</code>, <code>[ngStyle]</code> — change appearance</li><li>Custom structural: implement with <code>TemplateRef + ViewContainerRef</code></li><li>Custom attribute: <code>@Directive({ selector: "[appHighlight]" })</code></li></ul>'}},
+      {id:'html-enc',label:'CSS Encapsulation',angle:210,
+       detail:['Emulated — default, scoped','None — global styles','ShadowDom — native','::ng-deep — pierce (avoid)'],
+       tip:{t:'ViewEncapsulation',b:'<ul><li><code>Emulated</code> (default) — Angular adds unique attributes to scope CSS</li><li><code>None</code> — global styles, affects whole page</li><li><code>ShadowDom</code> — native browser shadow DOM</li><li><code>:host</code> — style the component host element</li><li><code>::ng-deep</code> — pierce encapsulation (deprecated, avoid)</li></ul>'}},
+      {id:'html-style',label:'Dynamic Styling',angle:225,
+       detail:['[class.active]="bool"','[ngClass]="{ a: b }"','[style.color]="val"','CSS custom properties'],
+       tip:{t:'Dynamic Classes & Styles',b:'<ul><li><code>[class.urgent]="isPending"</code> — single conditional class</li><li><code>[ngClass]="{ active: isActive, error: hasError }"</code></li><li><code>[style.color]="textColor"</code> — single style binding</li><li><code>[ngStyle]="{ color: fg, background: bg }"</code></li><li>CSS vars: <code>--primary: #f59e0b</code> with Angular Material theming</li></ul>'}},
+      {id:'html-pipes',label:'Pipes',angle:240,
+       detail:['async — auto subscribe/unsub','date, currency, percent','Pure vs Impure performance','Custom @Pipe({ pure: true })'],
+       tip:{t:'Angular Pipes',b:'<ul><li><code>{{ date | date:"short" }}</code>, <code>{{ val | currency:"USD" }}</code></li><li><code>async</code> pipe — auto-subscribes/unsubscribes Observable or Promise</li><li><b>Pure pipe</b> — only recalculates when input reference changes (fast)</li><li><b>Impure pipe</b> — recalculates every CD cycle (expensive)</li><li>Custom: <code>@Pipe({ name: "myPipe", pure: true })</code></li></ul>'}},
+      {id:'html-forms',label:'Reactive Forms',angle:150,
+       detail:['FormBuilder.group({})','Validators.required .email','Cross-field group validator','Custom async validator'],
+       tip:{t:'Reactive Forms',b:'<ul><li><code>this.fb.group({ email: ["", [Validators.required, Validators.email]] })</code></li><li>Custom validator: function returning <code>ValidationErrors | null</code></li><li>Cross-field: validator at <code>FormGroup</code> level — access multiple controls</li><li>Async validator: returns <code>Observable&lt;ValidationErrors | null&gt;</code></li><li><code>form.getRawValue()</code> — includes disabled controls</li></ul>'}},
+    ]
+  },
+  {
+    id:'routing',label:'Routing',icon:'🗺',color:'--p6',hex:'#06b6d4',angle:245,
+    topics:[
+      {id:'rt-config',label:'Route Config',angle:215,
+       detail:['path, component, redirectTo','pathMatch: full','** wildcard catch-all','children: [] nested routes'],
+       tip:{t:'Routes Configuration',b:'<ul><li><code>{ path: "orders", component: OrdersComponent }</code></li><li><code>{ path: "", redirectTo: "home", pathMatch: "full" }</code></li><li><code>{ path: "**", component: NotFoundComponent }</code></li><li>Children: <code>{ path: "orders", children: [...] }</code></li><li><code>RouterModule.forRoot(routes)</code> — root; <code>forChild()</code> — feature</li></ul>'}},
+      {id:'rt-nav',label:'Navigation',angle:230,
+       detail:['[routerLink]="[/orders]"','routerLinkActive="active"','router.navigate(["/orders"])','router.navigateByUrl("/orders")'],
+       tip:{t:'Navigation Patterns',b:'<ul><li><code>[routerLink]="[\'/orders\', id]"</code> — template navigation</li><li><code>routerLinkActive="active-class"</code> — auto-add class when active</li><li><code>this.router.navigate(["/orders", id])</code></li><li><code>this.router.navigate([], { queryParams: { page: 2 }, relativeTo: this.route })</code></li></ul>'}},
+      {id:'rt-params',label:'Route Params',angle:245,
+       detail:['/:id — route parameter','ActivatedRoute.params','queryParams — ?filter=active','paramMap.get("id")'],
+       tip:{t:'Route & Query Parameters',b:'<ul><li><code>route.params.subscribe(p => this.id = p["id"])</code></li><li><code>route.snapshot.paramMap.get("id")</code> — one-time read</li><li><code>route.queryParamMap.get("filter")</code> — query strings</li><li>Navigate with params: <code>router.navigate(["/orders"], { queryParams: { status: "active" } })</code></li></ul>'}},
+      {id:'rt-guards',label:'Guards',angle:260,
+       detail:['canActivate — auth check','canDeactivate — unsaved changes','canMatch — lazy route match','canLoad — block lazy download'],
+       tip:{t:'Route Guards',b:'<ul><li><code>canActivate</code> — block unauthenticated access</li><li><code>canDeactivate</code> — warn on unsaved form changes</li><li><code>canMatch</code> — conditionally match route (v14+)</li><li><code>canLoad</code> — prevent downloading lazy module</li><li>Functional guards (v15+): <code>canActivate: [() => inject(AuthService).isLoggedIn()]</code></li></ul>'}},
+      {id:'rt-resolve',label:'Resolvers',angle:275,
+       detail:['Pre-fetch before route activates','resolve: { data: MyResolver }','Accessible via ActivatedRoute','No loading flicker'],
+       tip:{t:'Route Resolvers',b:'<ul><li>Pre-fetches data before the component renders</li><li><code>resolve: { orders: OrdersResolver }</code> in route config</li><li>Access: <code>this.route.data.subscribe(d => this.orders = d.orders)</code></li><li>Eliminates loading spinners — page renders with data ready</li><li>Implement <code>ResolveFn&lt;T&gt;</code> (functional, v15+)</li></ul>'}},
+      {id:'rt-lazy',label:'Lazy Routes',angle:200,
+       detail:['loadChildren — feature module','loadComponent — standalone','Separate JS chunk per route','Preloading strategies'],
+       tip:{t:'Lazy Loading Routes',b:'<ul><li><code>loadChildren: () => import("./orders/orders.module").then(m => m.OrdersModule)</code></li><li><code>loadComponent: () => import("./dashboard.component").then(c => c.DashboardComponent)</code></li><li>Each lazy route = separate JS bundle downloaded on demand</li><li>Preloading: <code>PreloadAllModules</code> — loads after initial paint</li></ul>'}},
+      {id:'rt-outlet',label:'Router Outlets',angle:290,
+       detail:['<router-outlet> — primary','Named outlets — sidebar panels','Auxiliary routes','router-outlet + animations'],
+       tip:{t:'Router Outlets',b:'<ul><li><code>&lt;router-outlet&gt;</code> — renders active route component</li><li>Named: <code>&lt;router-outlet name="sidebar"&gt;</code></li><li>Auxiliary route: <code>{ outlets: { sidebar: ["panel"] } }</code></li><li>Add route transition animations via Angular Animations on outlet</li></ul>'}},
+    ]
+  },
+  {
+    id:'perf',label:'Performance',icon:'🚀',color:'--p7',hex:'#ff6b35',angle:157,
+    topics:[
+      {id:'pf-cd',label:'Change Detection',angle:130,
+       detail:['OnPush — skip subtree','trackBy — prevent list re-render','Signals — no zone.js','NgZone.runOutsideAngular()'],
+       tip:{t:'CD Performance',b:'<ul><li><code>ChangeDetectionStrategy.OnPush</code> — skip entire subtree unless @Input ref changes</li><li><code>trackBy: trackById</code> — prevent full list DOM re-creation</li><li>Signals (v17+) — fine-grained, zone.js-free reactivity</li><li><code>NgZone.runOutsideAngular()</code> — run animations/intervals without CD</li><li><code>detach()</code> — fully remove component from CD tree</li></ul>'}},
+      {id:'pf-bundle',label:'Bundle Optimization',angle:145,
+       detail:['Tree shaking — remove dead code','ng build --configuration=production','Lazy routes — split bundles','Source map explorer — audit size'],
+       tip:{t:'Bundle Size Optimization',b:'<ul><li>Production build: <code>ng build --configuration=production</code></li><li>Tree shaking removes unused exports automatically</li><li>Lazy-load routes — each gets its own chunk</li><li>Audit: <code>npx source-map-explorer dist/**/*.js</code></li><li>Use <code>ng-packagr</code> for library publishing</li></ul>'}},
+      {id:'pf-defer',label:'@defer',angle:160,
+       detail:['@defer (on viewport)','@defer (on idle)','@defer (on interaction)','@placeholder + @loading'],
+       tip:{t:'@defer — Lazy Template Loading',b:'<ul><li><code>@defer (on viewport) { &lt;HeavyChart /&gt; }</code> — load when scrolled into view</li><li><code>@defer (on idle)</code> — load when browser is idle</li><li><code>@defer (on interaction)</code> — load on first click/focus</li><li><code>@placeholder { &lt;Skeleton /&gt; }</code> — shown before load</li><li><code>@loading { &lt;Spinner /&gt; }</code> — shown during load</li></ul>'}},
+      {id:'pf-virtual',label:'Virtual Scrolling',angle:175,
+       detail:['cdk-virtual-scroll-viewport','Only renders visible rows','itemSize — fixed row height','Large list performance'],
+       tip:{t:'Virtual Scrolling — CDK',b:'<ul><li><code>&lt;cdk-virtual-scroll-viewport itemSize="50"&gt;</code></li><li>Only renders visible rows — handles 100k+ items</li><li><code>*cdkVirtualFor="let item of items"</code></li><li>Import <code>ScrollingModule</code> from <code>@angular/cdk/scrolling</code></li><li>Critical for large data tables, feed lists</li></ul>'}},
+      {id:'pf-rxjs',label:'RxJS Performance',angle:190,
+       detail:['shareReplay(1) — avoid dup HTTP','Pure pipes over methods','async pipe — auto-unsub','debounceTime — reduce calls'],
+       tip:{t:'RxJS Performance Patterns',b:'<ul><li><code>shareReplay(1)</code> — cache HTTP call, all subscribers share one request</li><li>Use <b>pure pipes</b> instead of methods in templates — methods run every CD</li><li><code>async</code> pipe auto-unsubscribes — prevents memory leaks</li><li><code>debounceTime(300)</code> — reduce API calls on search input</li></ul>'}},
+      {id:'pf-image',label:'Image & Loading',angle:115,
+       detail:['NgOptimizedImage directive','loading="lazy" — native','Preloading critical images','WebP format, proper sizing'],
+       tip:{t:'Image Optimization',b:'<ul><li><code>NgOptimizedImage</code> (v15+) — built-in lazy loading, srcset, LCP optimization</li><li><code>[ngSrc]="url" width="400" height="300"</code></li><li>Automatic WebP serving where supported</li><li><code>priority</code> attribute — preload above-fold images (LCP)</li></ul>'}},
+      {id:'pf-worker',label:'Web Workers',angle:205,
+       detail:['Offload CPU work off main thread','ng generate web-worker','postMessage / onmessage','Heavy computation — no UI block'],
+       tip:{t:'Web Workers',b:'<ul><li>Offload heavy computation (data processing, parsing) off main thread</li><li>Generate: <code>ng generate web-worker app</code></li><li><code>worker.postMessage(data)</code> — send data to worker</li><li><code>worker.onmessage = ({ data }) => result = data</code> — receive result</li><li>Workers have no DOM access — pure computation only</li></ul>'}},
+    ]
+  },
+  {
+    id:'ts',label:'TypeScript',icon:'📘',color:'--p8',hex:'#8b5cf6',angle:348,
+    topics:[
+      {id:'ts-types',label:'Type Safety',angle:325,
+       detail:['strict mode — always enable','unknown over any','Type narrowing — typeof / in','as const — literal types'],
+       tip:{t:'TypeScript Type Safety',b:'<ul><li><code>strict: true</code> in tsconfig — enables all strict checks</li><li><code>strictNullChecks</code> — null/undefined are not assignable to other types</li><li><code>noImplicitAny</code> — must annotate everything</li><li><code>unknown</code> over <code>any</code> — must narrow before use</li><li><code>as const</code> — infer literal types: <code>const dir = ["left","right"] as const</code></li></ul>'}},
+      {id:'ts-iface',label:'Interfaces',angle:340,
+       detail:['Interface vs type alias','extends — inheritance','implements — class contract','Optional ? and readonly'],
+       tip:{t:'Interfaces',b:'<ul><li><code>interface User { id: number; name?: string; readonly createdAt: Date }</code></li><li><code>interface AdminUser extends User { role: "admin" }</code></li><li><code>class UserService implements UserRepository { }</code></li><li>Declaration merging: re-open interface to add props (unique to interfaces)</li><li>Index signature: <code>{ [key: string]: number }</code></li></ul>'}},
+      {id:'ts-enums',label:'Enums',angle:355,
+       detail:['String enums — preferred','const enum — no runtime obj','keyof typeof pattern','Union types as alternative'],
+       tip:{t:'Enums & Alternatives',b:'<ul><li><code>enum Status { Active = "ACTIVE", Banned = "BANNED" }</code></li><li><code>const enum Dir { Up, Down }</code> — inlined at compile time, no runtime object</li><li><code>type Status = "active" | "banned"</code> — union as lightweight enum</li><li><code>keyof typeof Status</code> — get enum keys as type</li></ul>'}},
+      {id:'ts-generics',label:'Generics',angle:10,
+       detail:['<T> — reusable type param','extends — constrain T','keyof T — key types','ApiResponse<T> — typed responses'],
+       tip:{t:'Generics',b:'<ul><li><code>function first&lt;T&gt;(arr: T[]): T | undefined { return arr[0] }</code></li><li><code>&lt;T extends object&gt;</code> — constrain what T can be</li><li><code>function get&lt;T, K extends keyof T&gt;(obj: T, key: K): T[K]</code></li><li><code>interface ApiResponse&lt;T&gt; { data: T; status: number }</code></li></ul>'}},
+      {id:'ts-utility',label:'Utility Types',angle:25,
+       detail:['Partial<T> — PATCH requests','Omit<T,K> — remove fields','Pick<T,K> — keep fields','ReturnType<T> — fn return type'],
+       tip:{t:'Built-in Utility Types',b:'<ul><li><code>Partial&lt;User&gt;</code> — all props optional (PATCH DTOs)</li><li><code>Omit&lt;User, "password"&gt;</code> — remove sensitive fields</li><li><code>Pick&lt;User, "id"|"name"&gt;</code> — list view model</li><li><code>Record&lt;string, number&gt;</code> — typed dictionary</li><li><code>ReturnType&lt;typeof fetchUser&gt;</code> — infer return type</li><li><code>NonNullable&lt;T&gt;</code> — strip null and undefined</li></ul>'}},
+      {id:'ts-advanced',label:'Advanced Types',angle:40,
+       detail:['Type guards — is keyword','Discriminated unions','Mapped types — keyof','Conditional types — T extends U'],
+       tip:{t:'Advanced TypeScript',b:'<ul><li>Type guard: <code>function isUser(x: unknown): x is User { return "id" in x }</code></li><li>Discriminated union: <code>type State = { status:"loading" } | { status:"done"; data: T }</code></li><li>Mapped: <code>type Optional&lt;T&gt; = { [K in keyof T]?: T[K] }</code></li><li>Conditional: <code>type Unwrap&lt;T&gt; = T extends Promise&lt;infer U&gt; ? U : T</code></li><li>Template literal: <code>type Handler = \`on\${Capitalize&lt;Event&gt;}\`</code></li></ul>'}},
+      {id:'ts-decorators',label:'Decorators',angle:55,
+       detail:['@Component, @Injectable','@Input, @Output, @ViewChild','Custom method decorators','experimentalDecorators: true'],
+       tip:{t:'TypeScript Decorators',b:'<ul><li>Class decorator: <code>@Component({ ... })</code>, <code>@NgModule()</code></li><li>Property decorator: <code>@Input()</code>, <code>@Output()</code>, <code>@ViewChild()</code></li><li>Method decorator: custom logging, timing, retry logic</li><li>Enable in tsconfig: <code>"experimentalDecorators": true</code></li><li>Decorators are evaluated bottom-up when stacked</li></ul>'}},
+    ]
+  },
+];
+
+// ── LAYOUT ───────────────────────────────────────────────────────────────────
+const PILLAR_R=340, TOPIC_R=210, DETAIL_R=120;
+
+function polar(cx,cy,r,deg){
+  const a=(deg-90)*Math.PI/180;
+  return{x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)};
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let activePillar=null, activeTopic=null;
+
+// ── PAN/ZOOM ─────────────────────────────────────────────────────────────────
+let scale=0.38,tx=0,ty=0,dragging=false,lx=0,ly=0;
+const canvas=document.getElementById('canvas');
+const world=document.getElementById('world');
+
+function applyT(){world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`}
+function resetView(){
+  const vw=canvas.clientWidth,vh=canvas.clientHeight;
+  scale=0.38;tx=vw/2-CX*scale;ty=vh/2-CY*scale;applyT();
+}
+
+canvas.addEventListener('mousedown',e=>{dragging=true;lx=e.clientX;ly=e.clientY});
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  tx+=e.clientX-lx;ty+=e.clientY-ly;lx=e.clientX;ly=e.clientY;applyT();
+});
+window.addEventListener('mouseup',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const d=e.deltaY>0?0.88:1.12;
+  const ns=Math.min(2.5,Math.max(0.15,scale*d));
+  tx=mx-(mx-tx)*(ns/scale);ty=my-(my-ty)*(ns/scale);scale=ns;applyT();
+},{passive:false});
+
+// touch support
+let lastDist=0;
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){dragging=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;}
+  if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lastDist=Math.sqrt(dx*dx+dy*dy);}
+},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&dragging){tx+=e.touches[0].clientX-lx;ty+=e.touches[0].clientY-ly;lx=e.touches[0].clientX;ly=e.touches[0].clientY;applyT();}
+  if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;const dist=Math.sqrt(dx*dx+dy*dy);const d=dist/lastDist;const ns=Math.min(2.5,Math.max(0.15,scale*d));scale=ns;lastDist=dist;applyT();}
+},{passive:false});
+canvas.addEventListener('touchend',()=>dragging=false,{passive:true});
+
+// ── BUILD DOM ────────────────────────────────────────────────────────────────
+function buildMap(){
+  const w=document.getElementById('world');
+  const svg=document.getElementById('lines');
+  svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+
+  // Build legend
+  const leg=document.getElementById('legend');
+  PILLARS.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='leg';
+    el.innerHTML=`<div class="leg-dot" style="background:${p.hex}"></div>${p.label.replace('\n',' ')}`;
+    el.addEventListener('click',()=>togglePillar(p.id));
+    leg.appendChild(el);
+  });
+
+  // Center
+  const cn=document.createElement('div');
+  cn.className='center-node';
+  cn.style.left=CX+'px';cn.style.top=CY+'px';
+  cn.innerHTML=`<div class="logo">ng</div><div class="sub">Angular Core</div>`;
+  w.appendChild(cn);
+
+  // Radial background rings (decorative)
+  [200,350,560,760].forEach(r=>{
+    const circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',CX);circle.setAttribute('cy',CY);circle.setAttribute('r',r);
+    circle.setAttribute('stroke','rgba(255,255,255,0.025)');circle.setAttribute('stroke-width','1');
+    circle.setAttribute('fill','none');circle.setAttribute('stroke-dasharray','4 8');
+    svg.appendChild(circle);
+  });
+
+  PILLARS.forEach(pillar=>{
+    const pp=polar(CX,CY,PILLAR_R,pillar.angle);
+
+    // Line center→pillar
+    svg.appendChild(mkLine(CX,CY,pp.x,pp.y,pillar.hex,'ln'));
+
+    // Pillar node
+    const pEl=document.createElement('div');
+    pEl.className='pillar';pEl.id='p-'+pillar.id;
+    pEl.style.left=pp.x+'px';pEl.style.top=pp.y+'px';
+    pEl.innerHTML=`
+      <div class="pillar-ring" style="border-color:${pillar.hex}55;box-shadow:0 0 0 0 ${pillar.hex}">
+        <div class="pillar-icon">${pillar.icon}</div>
+        <div class="pillar-lbl" style="color:${pillar.hex}">${pillar.label}</div>
+      </div>`;
+    pEl.addEventListener('click',e=>{e.stopPropagation();togglePillar(pillar.id);});
+    w.appendChild(pEl);
+
+    pillar.topics.forEach(topic=>{
+      const tp=polar(pp.x,pp.y,TOPIC_R,topic.angle);
+
+      const lt=mkLine(pp.x,pp.y,tp.x,tp.y,pillar.hex,'lt');
+      lt.id='lt-'+topic.id;svg.appendChild(lt);
+
+      const tEl=document.createElement('div');
+      tEl.className='topic';tEl.id='t-'+topic.id;
+      tEl.style.left=tp.x+'px';tEl.style.top=tp.y+'px';
+      tEl.innerHTML=`<div class="topic-box" style="border-left-color:${pillar.hex};color:${pillar.hex}">${topic.label}</div>`;
+      tEl.addEventListener('click',e=>{e.stopPropagation();toggleTopic(pillar,topic);});
+      w.appendChild(tEl);
+
+      topic.detail.forEach((d,di)=>{
+        const ang=topic.angle-20+di*13.5;
+        const dp=polar(tp.x,tp.y,DETAIL_R,ang);
+        const ld=mkLine(tp.x,tp.y,dp.x,dp.y,pillar.hex,'ld');
+        ld.id='ld-'+topic.id+'-'+di;svg.appendChild(ld);
+        const dEl=document.createElement('div');
+        dEl.className='detail';dEl.id='d-'+topic.id+'-'+di;
+        dEl.style.left=dp.x+'px';dEl.style.top=dp.y+'px';
+        dEl.innerHTML=`<div class="detail-box">${d}</div>`;
+        w.appendChild(dEl);
+      });
+    });
+  });
+}
+
+function mkLine(x1,y1,x2,y2,color,cls){
+  const p=document.createElementNS('http://www.w3.org/2000/svg','line');
+  p.setAttribute('x1',x1);p.setAttribute('y1',y1);
+  p.setAttribute('x2',x2);p.setAttribute('y2',y2);
+  p.setAttribute('stroke',color);p.setAttribute('class',cls);
+  return p;
+}
+
+// ── INTERACTIONS ─────────────────────────────────────────────────────────────
+function togglePillar(id){
+  const p=PILLARS.find(x=>x.id===id);
+  const isActive=activePillar===id;
+  collapseAll();
+  if(!isActive){
+    activePillar=id;
+    const pEl=document.getElementById('p-'+id);
+    pEl.classList.add('active');
+    pEl.querySelector('.pillar-ring').style.boxShadow=`0 0 32px ${p.hex}55`;
+    pEl.querySelector('.pillar-ring').style.borderColor=p.hex;
+    p.topics.forEach(t=>{
+      document.getElementById('t-'+t.id)?.classList.add('visible');
+      document.getElementById('lt-'+t.id)?.classList.add('visible');
+    });
+  }
+}
+
+function toggleTopic(pillar,topic){
+  const isActive=activeTopic===topic.id;
+  if(activeTopic&&activeTopic!==topic.id) collapseTopicDetails(activeTopic);
+  document.querySelectorAll('.topic').forEach(el=>el.classList.remove('active'));
+  if(isActive){
+    collapseTopicDetails(topic.id);
+    activeTopic=null;closePanel();
+  } else {
+    activeTopic=topic.id;
+    document.getElementById('t-'+topic.id)?.classList.add('active');
+    topic.detail.forEach((_,di)=>{
+      document.getElementById('d-'+topic.id+'-'+di)?.classList.add('visible');
+      document.getElementById('ld-'+topic.id+'-'+di)?.classList.add('visible');
+    });
+    showPanel(topic.tip.t,topic.tip.b,pillar.hex);
+  }
+}
+
+function collapseTopicDetails(tid){
+  const t=PILLARS.flatMap(p=>p.topics).find(x=>x.id===tid);
+  if(!t)return;
+  t.detail.forEach((_,di)=>{
+    document.getElementById('d-'+tid+'-'+di)?.classList.remove('visible');
+    document.getElementById('ld-'+tid+'-'+di)?.classList.remove('visible');
+  });
+}
+
+function collapseAll(){
+  activePillar=null;activeTopic=null;
+  document.querySelectorAll('.pillar').forEach(el=>{
+    el.classList.remove('active');
+    const ring=el.querySelector('.pillar-ring');
+    if(ring){ring.style.boxShadow='';ring.style.borderColor='';}
+  });
+  document.querySelectorAll('.topic').forEach(el=>el.classList.remove('visible','active'));
+  document.querySelectorAll('.detail').forEach(el=>el.classList.remove('visible'));
+  document.querySelectorAll('.lt,.ld').forEach(el=>el.classList.remove('visible'));
+  closePanel();
+}
+
+function expandAll(){
+  PILLARS.forEach(p=>{
+    const pEl=document.getElementById('p-'+p.id);
+    if(pEl){
+      pEl.classList.add('active');
+      pEl.querySelector('.pillar-ring').style.boxShadow=`0 0 24px ${p.hex}44`;
+      pEl.querySelector('.pillar-ring').style.borderColor=p.hex;
+    }
+    p.topics.forEach(t=>{
+      document.getElementById('t-'+t.id)?.classList.add('visible');
+      document.getElementById('lt-'+t.id)?.classList.add('visible');
+    });
+  });
+  activePillar='all';
+}
+
+function showPanel(title,body,color){
+  document.getElementById('panel-title').innerHTML=title;
+  document.getElementById('panel-title').style.color=color;
+  document.getElementById('panel-body').innerHTML=body;
+  document.getElementById('panel').classList.add('show');
+}
+function closePanel(){document.getElementById('panel').classList.remove('show')}
+
+canvas.addEventListener('click',collapseAll);
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+buildMap();
+resetView();
+
+// Pulse center
+const cn=document.querySelector('.center-node');
+let pulse=0;
+setInterval(()=>{
+  pulse=!pulse;
+  cn.style.boxShadow=pulse
+    ?'0 0 80px rgba(168,85,247,.12),0 0 160px rgba(59,130,246,.07)'
+    :'0 0 60px rgba(168,85,247,.06),0 0 120px rgba(59,130,246,.03)';
+},2200);
+</script>
+</body>
+</html>

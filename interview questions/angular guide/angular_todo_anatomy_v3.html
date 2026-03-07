@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Angular Todo — City Anatomy</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080d14; --bg2:#0d1520; --card:#0f1c2d;
+  --border:rgba(255,255,255,0.07); --text:#dde6f0; --muted:#5a7390; --dim:#2a3d52;
+  --c-comp:#61dafb; --c-svc:#f59e0b; --c-di:#10b981; --c-rxjs:#a855f7;
+  --c-route:#f43f5e; --c-bind1:#3b82f6; --c-bind2:#fb923c;
+  --c-event:#fbbf24; --c-tmpl:#34d399; --c-mod:#e879f9;
+}
+html,body{width:100%;height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--text);overflow:hidden}
+
+/* ── TOPBAR ── */
+#topbar{
+  position:fixed;top:0;left:0;right:0;z-index:500;height:52px;
+  background:rgba(8,13,20,.97);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:10px;
+}
+.brand{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--muted);white-space:nowrap}
+.brand span{color:var(--c-comp)}
+.scene-nav{display:flex;gap:3px;flex:1;justify-content:center}
+.snav-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 11px;border-radius:20px;font-family:'Sora',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.snav-btn:hover{border-color:var(--c-comp);color:var(--c-comp)}
+.snav-btn.active{background:var(--c-comp);border-color:var(--c-comp);color:#000;font-weight:700}
+.nav-arrows{display:flex;gap:6px}
+.arr-btn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.arr-btn:hover{background:rgba(97,218,251,.1);border-color:var(--c-comp)}
+.arr-btn:disabled{opacity:.2;cursor:default}
+
+/* ── 3-COL LAYOUT ── */
+#app{
+  display:grid;grid-template-columns:320px 1fr 340px;
+  height:calc(100vh - 52px);margin-top:52px;overflow:hidden;
+}
+.col{height:100%;overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--border)}
+.col:last-child{border-right:none}
+.col-inner{padding:18px 16px}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+
+/* ── COLUMN HEADERS ── */
+.col-hdr{
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;gap:7px;margin-bottom:16px;
+}
+.col-hdr-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── SCENE TITLE ── */
+.scene-title{font-size:18px;font-weight:800;line-height:1.2;margin-bottom:4px}
+.scene-sub{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+
+/* ── CITY MAP ── */
+.city-map{position:relative;width:100%;user-select:none}
+.city-map svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.city-map svg line{stroke-width:1.5;stroke-dasharray:4 4;opacity:.2;transition:opacity .3s,stroke-width .3s}
+.city-map svg line.lit{opacity:.85;stroke-width:2.5;stroke-dasharray:none}
+
+.cbox{
+  position:absolute;border-radius:9px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  cursor:pointer;transition:all .22s cubic-bezier(.34,1.56,.64,1);
+  border:1.5px solid;padding:7px 6px;
+}
+.cbox:hover{transform:scale(1.07);z-index:10;filter:brightness(1.15)}
+.cbox.lit{transform:scale(1.1);z-index:20;filter:brightness(1.25)}
+.cbox-icon{font-size:18px;line-height:1;margin-bottom:3px}
+.cbox-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.04em;line-height:1.4;color:inherit;font-weight:600}
+
+/* ── FILE TABS ── */
+.file-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:0;overflow-x:auto;flex-shrink:0}
+.ftab{padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;
+  color:var(--muted);border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.ftab:hover{color:var(--text)}
+.ftab.active{color:var(--text);border-bottom-color:currentColor}
+.file-content{display:none}
+.file-content.active{display:block}
+
+/* ── CODE BLOCK ── */
+.code-wrap{
+  background:var(--bg2);border:1px solid var(--border);border-radius:0 0 10px 10px;
+  overflow:hidden;
+}
+.code-file-hdr{
+  padding:7px 12px;background:rgba(255,255,255,.025);border-bottom:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);
+  display:flex;align-items:center;gap:7px;
+}
+.code-file-hdr .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+pre{
+  padding:14px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  line-height:1.85;overflow-x:auto;white-space:pre;tab-size:2;
+}
+/* ── HIGHLIGHT SPANS ── */
+.hl{
+  display:inline;border-radius:3px;padding:1px 4px;cursor:pointer;
+  transition:background .15s,box-shadow .15s;position:relative;
+}
+.hl:hover{filter:brightness(1.4)}
+.hl.lit{box-shadow:0 0 0 2px currentColor;filter:brightness(1.5);z-index:1;position:relative}
+.hl-comp {background:rgba(97,218,251,.13);color:var(--c-comp)}
+.hl-svc  {background:rgba(245,158,11,.13);color:var(--c-svc)}
+.hl-di   {background:rgba(16,185,129,.13);color:var(--c-di)}
+.hl-rxjs {background:rgba(168,85,247,.13);color:var(--c-rxjs)}
+.hl-route{background:rgba(244,63,94,.13); color:var(--c-route)}
+.hl-bind1{background:rgba(59,130,246,.13);color:var(--c-bind1)}
+.hl-bind2{background:rgba(251,146,60,.13);color:var(--c-bind2)}
+.hl-event{background:rgba(251,191,36,.13);color:var(--c-event)}
+.hl-tmpl {background:rgba(52,211,153,.13);color:var(--c-tmpl)}
+.hl-mod  {background:rgba(232,121,249,.13);color:var(--c-mod)}
+.hl-css  {background:rgba(244,114,182,.13);color:#f472b6}
+.cm{color:var(--muted);font-style:italic}  /* code comment */
+.kw{color:#7dd3fc}  /* keyword */
+.ty{color:#86efac}  /* type */
+.st{color:#fca5a5}  /* string */
+.dc{color:#94a3b8}  /* decorator */
+
+/* ── LEGEND BAR ── */
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.leg{display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:16px;
+  border:1px solid var(--border);font-size:10px;cursor:pointer;transition:all .2s;color:var(--muted)}
+.leg:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+.leg.lit{color:#000;font-weight:700}
+.leg-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ── STORY PANEL ── */
+.story-hint{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:14px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.7;
+}
+.story-hint strong{color:var(--text)}
+
+/* ── CONCEPT CARD ── */
+.ccard{
+  background:var(--bg2);border:1px solid var(--border);border-radius:11px;
+  overflow:hidden;margin-bottom:10px;display:none;
+}
+.ccard.open{display:block}
+.ccard-hdr{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;
+  border-bottom:1px solid var(--border);
+}
+.ccard-emoji{font-size:22px;flex-shrink:0}
+.ccard-title{font-size:14px;font-weight:700;line-height:1.2}
+.ccard-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.ccard-tag{
+  margin-left:auto;padding:2px 7px;border-radius:10px;
+  font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;
+}
+.ccard-body{padding:12px 14px}
+.grade5{
+  border-left:3px solid currentColor;border-radius:0 7px 7px 0;
+  padding:9px 11px;margin-bottom:10px;font-size:12px;line-height:1.7;
+  background:rgba(255,255,255,.025);
+}
+.angular-def{font-size:11.5px;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.code-snip{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  color:#c9d6e3;line-height:1.7;overflow-x:auto;white-space:pre;
+}
+
+/* ── SCENE VISIBILITY ── */
+.scene{display:none}
+.scene.active{display:contents}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="brand">Angular <span>City</span> · Todo Anatomy</div>
+  <div class="scene-nav">
+    <button class="snav-btn active"  onclick="goScene(0)">🏙️ Overview</button>
+    <button class="snav-btn"         onclick="goScene(1)">🏛️ AppModule</button>
+    <button class="snav-btn"         onclick="goScene(2)">📋 TodoList</button>
+    <button class="snav-btn"         onclick="goScene(3)">🏪 TodoService</button>
+    <button class="snav-btn"         onclick="goScene(4)">🔍 TodoDetail</button>
+    <button class="snav-btn"         onclick="goScene(5)">🗺️ Routing</button>
+  </div>
+  <div class="nav-arrows">
+    <button class="arr-btn" id="btn-prev" onclick="prevScene()" disabled>←</button>
+    <button class="arr-btn" id="btn-next" onclick="nextScene()">→</button>
+  </div>
+</div>
+
+<div id="app">
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCENE 0 — CITY OVERVIEW
+════════════════════════════════════════════════════════════════════ -->
+<div class="scene active" id="scene-0">
+
+  <!-- COL 1: MAP -->
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-comp)"><div class="col-hdr-dot"></div>City Map</div>
+    <div class="scene-title">The City Overview</div>
+    <div class="scene-sub">Every Angular app is a city. Click any building.</div>
+
+    <div class="legend">
+      <div class="leg" data-k="mod"   onclick="pick('mod')"  ><div class="leg-dot" style="background:var(--c-mod)"></div>Module</div>
+      <div class="leg" data-k="comp"  onclick="pick('comp')" ><div class="leg-dot" style="background:var(--c-comp)"></div>Component</div>
+      <div class="leg" data-k="svc"   onclick="pick('svc')"  ><div class="leg-dot" style="background:var(--c-svc)"></div>Service</div>
+      <div class="leg" data-k="di"    onclick="pick('di')"   ><div class="leg-dot" style="background:var(--c-di)"></div>DI</div>
+      <div class="leg" data-k="rxjs"  onclick="pick('rxjs')" ><div class="leg-dot" style="background:var(--c-rxjs)"></div>RxJS</div>
+      <div class="leg" data-k="route" onclick="pick('route')"><div class="leg-dot" style="background:var(--c-route)"></div>Router</div>
+    </div>
+
+    <div class="city-map" style="height:480px">
+      <svg id="s0-svg"></svg>
+      <!-- AppModule -->
+      <div class="cbox hl-mod"   id="cb0-mod"    style="left:20%;top:1%;width:60%;height:52px;border-color:var(--c-mod)"    onclick="pick('mod')">   <div class="cbox-icon">🏛️</div><div class="cbox-lbl">AppModule<br>City Hall</div></div>
+      <!-- AppComponent -->
+      <div class="cbox hl-comp"  id="cb0-comp"   style="left:20%;top:16%;width:60%;height:52px;border-color:var(--c-comp)"  onclick="pick('comp')">  <div class="cbox-icon">🏠</div><div class="cbox-lbl">AppComponent<br>Main Shell</div></div>
+      <!-- Router -->
+      <div class="cbox hl-route" id="cb0-route"  style="left:1%;top:32%;width:28%;height:52px;border-color:var(--c-route)"  onclick="pick('route')"> <div class="cbox-icon">🗺️</div><div class="cbox-lbl">Router<br>Road System</div></div>
+      <!-- TodoList -->
+      <div class="cbox hl-comp"  id="cb0-list"   style="left:31%;top:32%;width:38%;height:52px;border-color:var(--c-comp)"  onclick="goScene(2)">    <div class="cbox-icon">📋</div><div class="cbox-lbl">TodoListComponent<br>→ Scene 3</div></div>
+      <!-- TodoDetail -->
+      <div class="cbox hl-comp"  id="cb0-detail" style="right:1%;top:32%;width:28%;height:52px;border-color:var(--c-comp)"  onclick="goScene(4)">    <div class="cbox-icon">🔍</div><div class="cbox-lbl">TodoDetailComponent<br>→ Scene 5</div></div>
+      <!-- TodoService -->
+      <div class="cbox hl-svc"   id="cb0-svc"    style="left:5%;top:52%;width:42%;height:52px;border-color:var(--c-svc)"    onclick="goScene(3)">    <div class="cbox-icon">🏪</div><div class="cbox-lbl">TodoService<br>→ Scene 4</div></div>
+      <!-- RxJS -->
+      <div class="cbox hl-rxjs"  id="cb0-rxjs"   style="right:5%;top:52%;width:42%;height:52px;border-color:var(--c-rxjs)"  onclick="pick('rxjs')">  <div class="cbox-icon">🌊</div><div class="cbox-lbl">RxJS Observables<br>Water Pipes</div></div>
+      <!-- DI -->
+      <div class="cbox hl-di"    id="cb0-di"     style="left:20%;top:70%;width:60%;height:52px;border-color:var(--c-di)"    onclick="pick('di')">    <div class="cbox-icon">💉</div><div class="cbox-lbl">Dependency Injection<br>City Directory</div></div>
+      <!-- HTTP API -->
+      <div class="cbox"          id="cb0-api"    style="left:20%;top:87%;width:60%;height:48px;border-color:var(--dim);background:rgba(255,255,255,.02)" onclick="pick('api')">    <div class="cbox-icon">🌐</div><div class="cbox-lbl" style="color:var(--muted)">HTTP API (JSONPlaceholder)<br>The Supermarket</div></div>
+    </div>
+  </div></div>
+
+  <!-- COL 2: FILE TREE + ALL FILES -->
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-svc)"><div class="col-hdr-dot"></div>Full File Structure</div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px">
+      <div class="code-file-hdr"><div class="dot" style="background:var(--c-mod)"></div>📁 src/app/ — click any file name</div>
+      <pre>
+<span class="hl hl-mod"   onclick="pick('mod')"  >app.module.ts</span>             <span class="cm">← City Hall</span>
+<span class="hl hl-comp"  onclick="pick('comp')" >app.component.ts</span>          <span class="cm">← Main shell (TypeScript)</span>
+<span class="hl hl-comp"  onclick="pick('comp')" >app.component.html</span>        <span class="cm">← Outer walls + magic door</span>
+<span class="hl hl-css"   onclick="pick('s2-encap')">app.component.css</span>         <span class="cm">← Nav bar styles (scoped)</span>
+<span class="hl hl-route" onclick="pick('route')">app-routing.module.ts</span>     <span class="cm">← Road map</span>
+<span class="hl hl-css"   onclick="pick('s2-encap')">styles.css</span>                <span class="cm">← Global styles (whole app)</span>
+
+📁 <span style="color:var(--dim)">todo-list/</span>
+  <span class="hl hl-comp" onclick="goScene(2)">todo-list.component.ts</span>
+  <span class="hl hl-comp" onclick="goScene(2)">todo-list.component.html</span>
+  <span class="hl hl-css"  onclick="goScene(2)">todo-list.component.css</span>   <span class="cm">← List styles (scoped)</span>
+
+📁 <span style="color:var(--dim)">todo-detail/</span>
+  <span class="hl hl-comp" onclick="goScene(4)">todo-detail.component.ts</span>
+  <span class="hl hl-comp" onclick="goScene(4)">todo-detail.component.html</span>
+  <span class="hl hl-css"  onclick="goScene(4)">todo-detail.component.css</span> <span class="cm">← Detail styles (scoped)</span>
+
+📁 <span style="color:var(--dim)">services/</span>
+  <span class="hl hl-svc"  onclick="goScene(3)">todo.service.ts</span>           <span class="cm">← Delivery company</span>
+
+📁 <span style="color:var(--dim)">models/</span>
+  <span style="color:var(--dim)">todo.model.ts</span>             <span class="cm">← Todo interface blueprint</span></pre>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px">
+      <div class="code-file-hdr"><div class="dot" style="background:var(--dim)"></div>todo.model.ts</div>
+      <pre>
+<span class="kw">export interface</span> <span class="ty">Todo</span> {
+  id:        <span class="ty">number</span>;
+  title:     <span class="ty">string</span>;
+  completed: <span class="ty">boolean</span>;
+  userId:    <span class="ty">number</span>;
+}</pre>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px">
+      <div class="file-tabs" data-tabgroup="s0-app">
+        <div class="ftab active" style="color:var(--c-comp)"  onclick="switchTab(this,'s0-app-ts')">app.component.ts</div>
+        <div class="ftab"        style="color:var(--c-tmpl)"  onclick="switchTab(this,'s0-app-html')">app.component.html</div>
+        <div class="ftab"        style="color:#f472b6"         onclick="switchTab(this,'s0-app-css')">app.component.css</div>
+        <div class="ftab"        style="color:#f472b6"         onclick="switchTab(this,'s0-styles')">styles.css</div>
+      </div>
+
+      <div class="file-content active" data-tabgroup="s0-app" id="s0-app-ts">
+<pre>
+<span class="kw">import</span> { Component } <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+
+<span class="hl hl-comp" onclick="pick('comp')">@Component</span>({
+  selector:    <span class="st">'app-root'</span>,          <span class="cm">// matches &lt;app-root&gt; in index.html</span>
+  templateUrl: <span class="st">'./app.component.html'</span>,
+  styleUrls:   [<span class="st">'./app.component.css'</span>]
+})
+<span class="kw">export class</span> <span class="ty">AppComponent</span> {
+  title = <span class="st">'todo-app'</span>;
+  <span class="cm">// AppComponent is intentionally thin —</span>
+  <span class="cm">// it only holds the nav + router-outlet shell.</span>
+  <span class="cm">// All real logic lives in child components.</span>
+}
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s0-app" id="s0-app-html">
+<pre>
+&lt;<span class="hl hl-comp" onclick="pick('comp')">nav</span>&gt;
+  &lt;a <span class="hl hl-route" onclick="pick('route')">routerLink="/"</span>
+     <span class="hl hl-route" onclick="pick('route')">routerLinkActive="active"</span>
+     [routerLinkActiveOptions]="{exact:true}"&gt;
+    📋 All Todos
+  &lt;/a&gt;
+&lt;/nav&gt;
+
+<span class="cm">&lt;!-- The Magic Door: matched component renders here --&gt;</span>
+&lt;<span class="hl hl-route" onclick="pick('route')">router-outlet</span>&gt;&lt;/<span class="hl hl-route" onclick="pick('route')">router-outlet</span>&gt;
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s0-app" id="s0-app-css">
+<pre>
+<span class="cm">/* ── app.component.css ──────────────────────────── */</span>
+<span class="cm">/* Scoped to AppComponent only (View Encapsulation) */</span>
+
+<span class="hl hl-css" onclick="pick('s2-encap')">:host</span> {
+  display: block;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #1e293b;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05);
+}
+
+nav a {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+nav a:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); }
+
+<span class="cm">/* Added automatically by routerLinkActive="active" */</span>
+nav a<span class="hl hl-route" onclick="pick('route')">.active</span> { color: #61dafb; font-weight: 600; }
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s0-app" id="s0-styles">
+<pre>
+<span class="cm">/* ── styles.css ─────────────────────────────────── */</span>
+<span class="cm">/* The ONLY truly global stylesheet in the project. */</span>
+<span class="cm">/* Use for: resets, fonts, CSS variables, utilities */</span>
+<span class="cm">/* Component .css files are VIEW-ENCAPSULATED        */</span>
+<span class="cm">/* (scoped to their own component only).            */</span>
+
+<span class="hl hl-css" onclick="pick('s2-encap')">*, *::before, *::after</span> {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+
+<span class="hl hl-css" onclick="pick('s2-encap')">:root</span> {
+  --color-primary:  #0ea5e9;
+  --color-danger:   #ef4444;
+  --color-success:  #22c55e;
+  --color-text:     #1e293b;
+  --color-muted:    #64748b;
+  --color-border:   #e2e8f0;
+  --radius-md:      8px;
+  --shadow-sm:      0 1px 3px rgba(0,0,0,0.08);
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: #f1f5f9;
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+<span class="cm">/* Accessibility utility — used across all components */</span>
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+</pre>
+      </div>
+    </div>
+  </div></div>
+
+  <!-- COL 3: STORY -->
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-tmpl)"><div class="col-hdr-dot"></div>The Story</div>
+    <div class="story-hint">👆 <strong>Click any building</strong> on the map or <strong>any highlighted word</strong> in the code.<br><br>The explanation stays open until you click it again or click something else.</div>
+
+    <div class="ccard" id="cc-mod" style="color:var(--c-mod)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🏛️</div><div><div class="ccard-title">AppModule</div><div class="ccard-sub">app.module.ts · @NgModule</div></div><div class="ccard-tag" style="background:rgba(232,121,249,.15);color:var(--c-mod)">@NgModule</div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-mod)">🏛️ <strong>City Hall</strong> — Before any building opens in the city, it must register at City Hall. City Hall keeps a list of every building (declarations), every road and utility (imports), and every delivery company (providers). Without registration, Angular says "I don't know what that is."</div>
+        <div class="angular-def">AppModule is the root NgModule. Angular reads it at startup to wire the whole app. <em>Angular 17+ apps skip this in favour of standalone components + app.config.ts.</em></div>
+        <div class="code-snip">@NgModule({
+  declarations: [AppComponent, TodoListComponent ...],
+  imports:      [BrowserModule, RouterModule, HttpClientModule],
+  providers:    [TodoService],
+  bootstrap:    [AppComponent]
+})</div>
+      </div>
+    </div>
+
+    <div class="ccard" id="cc-comp" style="color:var(--c-comp)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🏠</div><div><div class="ccard-title">Component</div><div class="ccard-sub">TypeScript class + HTML template</div></div><div class="ccard-tag" style="background:rgba(97,218,251,.15);color:var(--c-comp)">@Component</div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-comp)">🏠 <strong>A Building</strong> — Every component has two floors: the <strong>lobby</strong> (HTML template — what visitors see) and the <strong>manager's office</strong> (TypeScript class — the brain). The manager stores data, calls services, and reacts to visitor actions.</div>
+        <div class="angular-def">A component = @Component decorator + TypeScript class. The decorator links it to its template and stylesheet. The class holds state (properties) and logic (methods).</div>
+        <div class="code-snip">@Component({
+  selector:    'app-todo-list',     // HTML tag name
+  templateUrl: './todo-list.html',  // the lobby
+  styleUrls:   ['./todo-list.css']
+})
+export class TodoListComponent implements OnInit { ... }</div>
+      </div>
+    </div>
+
+    <div class="ccard" id="cc-svc" style="color:var(--c-svc)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🏪</div><div><div class="ccard-title">TodoService</div><div class="ccard-sub">todo.service.ts · @Injectable</div></div><div class="ccard-tag" style="background:rgba(245,158,11,.15);color:var(--c-svc)">@Injectable</div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-svc)">🏪 <strong>The Delivery Company</strong> — Buildings don't go shopping themselves. They call the delivery company. The service goes to the API (the supermarket), fetches the data, and delivers it back via a pipe (Observable). One service, shared by all components.</div>
+        <div class="angular-def">Services contain all HTTP calls and business logic. Components stay "thin" — they just call the service and display the result. Click Scene 4 for the full service code.</div>
+      </div>
+    </div>
+
+    <div class="ccard" id="cc-di" style="color:var(--c-di)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💉</div><div><div class="ccard-title">Dependency Injection</div><div class="ccard-sub">Angular's automatic wiring</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-di)">💉 <strong>The City Directory</strong> — Instead of a building going out to find a delivery company, you write in the constructor: "I need a TodoService." Angular looks in its directory, finds the one company that already exists, and hands it to you. <em>You never write <code>new TodoService()</code>.</em></div>
+        <div class="angular-def">DI = declare the dependency in the constructor, Angular provides it. <code>providedIn: 'root'</code> makes the service a singleton shared by the whole app.</div>
+        <div class="code-snip">// Angular injects TodoService automatically
+constructor(private todoService: TodoService) {}
+// Now this.todoService is ready to use!</div>
+      </div>
+    </div>
+
+    <div class="ccard" id="cc-rxjs" style="color:var(--c-rxjs)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🌊</div><div><div class="ccard-title">RxJS Observables</div><div class="ccard-sub">Reactive data streams</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-rxjs)">🌊 <strong>Water Pipes</strong> — An Observable is a pipe. Nothing flows until you turn on the tap (subscribe). You can add filters mid-pipe: <code>map</code> changes the shape of the water, <code>catchError</code> handles leaks. The <code>| async</code> pipe in HTML is a self-sealing tap — it closes automatically when the building is demolished.</div>
+        <div class="angular-def">HTTP calls in Angular return Observables. .pipe() chains operators. Use the async pipe in templates to avoid manual subscription management.</div>
+        <div class="code-snip">todos$ = this.todoService.getAll(); // just assign
+// In HTML — auto subscribes AND auto unsubscribes:
+&lt;li *ngFor="let t of todos$ | async"&gt;{{ t.title }}&lt;/li&gt;</div>
+      </div>
+    </div>
+
+    <div class="ccard" id="cc-route" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🗺️</div><div><div class="ccard-title">Router</div><div class="ccard-sub">app-routing.module.ts</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🗺️ <strong>The Road System</strong> — The router watches the URL. Type <code>/</code> → drives you to TodoListComponent. Type <code>/todos/5</code> → drives you to TodoDetailComponent showing todo #5. The <code>&lt;router-outlet&gt;</code> is the magic door where the matched building appears.</div>
+        <div class="angular-def">Angular Router = client-side navigation. No full page reloads. Routes config maps URL paths to components. &lt;router-outlet&gt; is the render target.</div>
+        <div class="code-snip">const routes = [
+  { path: '',          component: TodoListComponent },
+  { path: 'todos/:id', component: TodoDetailComponent }
+];</div>
+      </div>
+    </div>
+
+    <div class="ccard" id="cc-api" style="color:#94a3b8;border-color:var(--dim)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🌐</div><div><div class="ccard-title">HTTP API</div><div class="ccard-sub">JSONPlaceholder — mock REST API</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-left-color:#94a3b8">🌐 <strong>The Supermarket</strong> — The API is outside the city. The service drives out, picks up the data (JSON), and brings it back via an Observable. We use JSONPlaceholder as a free fake API that returns realistic todo data.</div>
+        <div class="code-snip">Base URL: https://jsonplaceholder.typicode.com
+GET  /todos      → all todos (200 items)
+GET  /todos/1    → single todo
+POST /todos      → create (returns mock created todo)
+PUT  /todos/1    → full update
+DELETE /todos/1  → delete</div>
+      </div>
+    </div>
+
+  </div></div>
+</div><!-- /scene 0 -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCENE 1 — APP MODULE
+════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-1">
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-mod)"><div class="col-hdr-dot"></div>Town Hall</div>
+    <div class="scene-title">AppModule</div>
+    <div class="scene-sub">Where Angular registers everything before the city opens.</div>
+    <div class="city-map" style="height:440px">
+      <svg id="s1-svg"></svg>
+      <div class="cbox hl-mod"   style="left:15%;top:1%;width:70%;height:50px;border-color:var(--c-mod)"   onclick="pick('s1-decorator')"><div class="cbox-icon">📋</div><div class="cbox-lbl">@NgModule decorator</div></div>
+      <div class="cbox hl-comp"  style="left:1%;top:22%;width:30%;height:50px;border-color:var(--c-comp)"  onclick="pick('s1-decl')"     ><div class="cbox-icon">🏠</div><div class="cbox-lbl">declarations[]</div></div>
+      <div class="cbox hl-route" style="left:35%;top:22%;width:30%;height:50px;border-color:var(--c-route)" onclick="pick('s1-imports')"  ><div class="cbox-icon">📦</div><div class="cbox-lbl">imports[]</div></div>
+      <div class="cbox hl-di"    style="right:1%;top:22%;width:30%;height:50px;border-color:var(--c-di)"    onclick="pick('s1-providers')"><div class="cbox-icon">💉</div><div class="cbox-lbl">providers[]</div></div>
+      <div class="cbox hl-comp"  style="left:25%;top:44%;width:50%;height:50px;border-color:var(--c-comp)"  onclick="pick('s1-bootstrap')"><div class="cbox-icon">🚀</div><div class="cbox-lbl">bootstrap[]</div></div>
+      <div class="cbox hl-mod"   style="left:5%;top:65%;width:90%;height:48px;border-color:var(--c-mod);border-style:dashed" onclick="pick('s1-standalone')"><div class="cbox-icon">⚡</div><div class="cbox-lbl" style="font-size:8px">Angular 17+ Standalone: app.config.ts (no NgModule)</div></div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-mod)"><div class="col-hdr-dot"></div>Code</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div class="file-tabs" data-tabgroup="s1">
+        <div class="ftab active" style="color:var(--c-mod)"  onclick="switchTab(this,'s1-module')">app.module.ts</div>
+        <div class="ftab"        style="color:var(--c-comp)" onclick="switchTab(this,'s1-comp-ts')">app.component.ts</div>
+        <div class="ftab"        style="color:var(--c-tmpl)" onclick="switchTab(this,'s1-comp-html')">app.component.html</div>
+        <div class="ftab"        style="color:#f472b6"        onclick="switchTab(this,'s1-comp-css')">app.component.css</div>
+        <div class="ftab"        style="color:var(--c-mod)"  onclick="switchTab(this,'s1-config')">app.config.ts ⚡</div>
+      </div>
+
+      <div class="file-content active" data-tabgroup="s1" id="s1-module">
+<pre>
+<span class="kw">import</span> { <span class="hl hl-mod" onclick="pick('s1-decorator')">NgModule</span> }          <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+<span class="kw">import</span> { BrowserModule }     <span class="kw">from</span> <span class="st">'@angular/platform-browser'</span>;
+<span class="kw">import</span> { <span class="hl hl-di" onclick="pick('s1-providers')">HttpClientModule</span> }  <span class="kw">from</span> <span class="st">'@angular/common/http'</span>;
+<span class="kw">import</span> { <span class="hl hl-bind2" onclick="pick('s1-imports')">FormsModule</span> }       <span class="kw">from</span> <span class="st">'@angular/forms'</span>;
+
+<span class="kw">import</span> { <span class="hl hl-route" onclick="pick('s1-imports')">AppRoutingModule</span> }  <span class="kw">from</span> <span class="st">'./app-routing.module'</span>;
+<span class="kw">import</span> { <span class="hl hl-comp"  onclick="pick('s1-decl')">AppComponent</span> }      <span class="kw">from</span> <span class="st">'./app.component'</span>;
+<span class="kw">import</span> { <span class="hl hl-comp"  onclick="pick('s1-decl')">TodoListComponent</span> }  <span class="kw">from</span> <span class="st">'./todo-list/todo-list.component'</span>;
+<span class="kw">import</span> { <span class="hl hl-comp"  onclick="pick('s1-decl')">TodoDetailComponent</span> }<span class="kw">from</span> <span class="st">'./todo-detail/todo-detail.component'</span>;
+<span class="kw">import</span> { <span class="hl hl-svc"  onclick="pick('s1-providers')">TodoService</span> }        <span class="kw">from</span> <span class="st">'./services/todo.service'</span>;
+
+<span class="hl hl-mod" onclick="pick('s1-decorator')">@NgModule</span>({
+  <span class="hl hl-comp"  onclick="pick('s1-decl')">declarations</span>: [
+    AppComponent,
+    TodoListComponent,
+    TodoDetailComponent,
+  ],
+  <span class="hl hl-route" onclick="pick('s1-imports')">imports</span>: [
+    BrowserModule,       <span class="cm">// browser DOM support</span>
+    AppRoutingModule,    <span class="cm">// router</span>
+    HttpClientModule,    <span class="cm">// enables HttpClient</span>
+    FormsModule,         <span class="cm">// enables [(ngModel)]</span>
+  ],
+  <span class="hl hl-di" onclick="pick('s1-providers')">providers</span>: [
+    <span class="hl hl-svc" onclick="pick('svc')">TodoService</span>
+  ],
+  <span class="hl hl-comp" onclick="pick('s1-bootstrap')">bootstrap</span>: [AppComponent]
+})
+<span class="kw">export class</span> <span class="ty">AppModule</span> {}
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s1" id="s1-comp-ts">
+<pre>
+<span class="kw">import</span> { Component } <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+
+<span class="hl hl-comp" onclick="pick('comp')">@Component</span>({
+  selector:    <span class="st">'app-root'</span>,
+  templateUrl: <span class="st">'./app.component.html'</span>,
+  styleUrls:   [<span class="st">'./app.component.css'</span>]
+})
+<span class="kw">export class</span> <span class="ty">AppComponent</span> {
+  title = <span class="st">'todo-app'</span>;
+  <span class="cm">// Intentionally thin — just the shell.</span>
+  <span class="cm">// No data, no services, no logic here.</span>
+}
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s1" id="s1-comp-html">
+<pre>
+&lt;<span class="hl hl-comp" onclick="pick('comp')">nav</span>&gt;
+  &lt;a <span class="hl hl-route" onclick="pick('route')">routerLink="/"</span>
+     <span class="hl hl-route" onclick="pick('route')">routerLinkActive="active"</span>
+     [routerLinkActiveOptions]="{exact:true}"&gt;
+    📋 All Todos
+  &lt;/a&gt;
+&lt;/nav&gt;
+
+<span class="cm">&lt;!-- The Magic Door --&gt;</span>
+&lt;<span class="hl hl-route" onclick="pick('route')">router-outlet</span>&gt;&lt;/<span class="hl hl-route" onclick="pick('route')">router-outlet</span>&gt;
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s1" id="s1-comp-css">
+<pre>
+<span class="cm">/* ── app.component.css ──────────────────────────── */</span>
+<span class="cm">/* Scoped to AppComponent via View Encapsulation.   */</span>
+
+<span class="hl hl-css" onclick="pick('s2-encap')">:host</span> { display: block; }
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #1e293b;
+}
+
+nav a {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+nav a:hover { color: #f1f5f9; background: rgba(255,255,255,0.06); }
+
+<span class="cm">/* Added by routerLinkActive="active" directive */</span>
+nav a<span class="hl hl-route" onclick="pick('route')">.active</span> {
+  color: #61dafb;
+  font-weight: 600;
+}
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s1" id="s1-config">
+<pre>
+<span class="cm">// ── app.config.ts (Angular 17+ / Standalone) ─────</span>
+<span class="cm">// Replaces AppModule entirely. No @NgModule needed.</span>
+
+<span class="kw">import</span> { ApplicationConfig } <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="hl hl-route" onclick="pick('s1-imports')">provideRouter</span> }      <span class="kw">from</span> <span class="st">'@angular/router'</span>;
+<span class="kw">import</span> { <span class="hl hl-di"    onclick="pick('s1-providers')">provideHttpClient</span> }  <span class="kw">from</span> <span class="st">'@angular/common/http'</span>;
+<span class="kw">import</span> { routes }             <span class="kw">from</span> <span class="st">'./app.routes'</span>;
+
+<span class="kw">export const</span> <span class="hl hl-mod" onclick="pick('s1-standalone')">appConfig</span>: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideHttpClient(),
+  ]
+};
+
+<span class="cm">// main.ts — bootstraps directly, no AppModule</span>
+<span class="hl hl-comp" onclick="pick('s1-bootstrap')">bootstrapApplication</span>(AppComponent, appConfig);
+</pre>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-tmpl)"><div class="col-hdr-dot"></div>The Story</div>
+    <div class="story-hint">👆 Click any block or highlighted word.</div>
+    <div class="ccard" id="cc-s1-decorator" style="color:var(--c-mod)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📋</div><div><div class="ccard-title">@NgModule</div><div class="ccard-sub">The Registration Form</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-mod)">📋 Before the city opens, the mayor fills out one registration form. The form has four sections: which buildings exist, what utilities are available, which delivery companies are approved, and which building opens first.</div>
+        <div class="angular-def">@NgModule is a TypeScript decorator that adds metadata to a class. Angular reads this metadata at startup to understand your application's structure.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s1-decl" style="color:var(--c-comp)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🏠</div><div><div class="ccard-title">declarations[]</div><div class="ccard-sub">Which buildings exist</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-comp)">🏠 <strong>Building Permits</strong> — Every component, directive, and pipe must be declared here. If it's not on the list, Angular won't recognise the HTML tag and will throw an error like "unknown element." Each item can only be declared in ONE module.</div>
+        <div class="angular-def">declarations[] lists all components, directives, and pipes belonging to this module. Angular uses this to resolve component selectors in templates.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s1-imports" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📦</div><div><div class="ccard-title">imports[]</div><div class="ccard-sub">Utilities the city needs</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">📦 <strong>Utilities</strong> — The city doesn't build its own electricity. <code>BrowserModule</code> = browser DOM support. <code>AppRoutingModule</code> = the road system. <code>HttpClientModule</code> = ability to call APIs. <code>FormsModule</code> = two-way binding with <code>[(ngModel)]</code>.</div>
+        <div class="angular-def">imports[] brings in other NgModules whose exported declarations, directives, and pipes become available in this module's templates.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s1-providers" style="color:var(--c-di)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💉</div><div><div class="ccard-title">providers[]</div><div class="ccard-sub">Approved services</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-di)">💉 <strong>Approved Vendors</strong> — Listing a service in providers[] tells the DI system it's approved to operate in this city. Any component can then request it in its constructor. Modern Angular uses <code>providedIn: 'root'</code> directly in the service instead — no need to list it here at all.</div>
+        <div class="code-snip">// Modern preferred way — in the service itself:
+@Injectable({ providedIn: 'root' })
+export class TodoService { ... }
+// Now you don't need to add it to providers[]</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s1-bootstrap" style="color:var(--c-comp)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🚀</div><div><div class="ccard-title">bootstrap[]</div><div class="ccard-sub">The first building to open</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-comp)">🚀 <strong>Grand Opening</strong> — When Angular starts, it opens exactly one building first: AppComponent. It looks for <code>&lt;app-root&gt;</code> in index.html and renders AppComponent there. Everything else loads inside it.</div>
+        <div class="code-snip">&lt;!-- index.html --&gt;
+&lt;body&gt;
+  &lt;app-root&gt;&lt;/app-root&gt; &lt;!-- Angular renders AppComponent here --&gt;
+&lt;/body&gt;</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s1-standalone" style="color:var(--c-mod)">
+      <div class="ccard-hdr"><div class="ccard-emoji">⚡</div><div><div class="ccard-title">Standalone (Angular 17+)</div><div class="ccard-sub">No NgModule needed</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-mod)">⚡ <strong>Self-Permitted Buildings</strong> — In Angular 17+, components can register themselves with <code>standalone: true</code>. No City Hall needed. The component lists its own imports. <code>app.config.ts</code> replaces AppModule as the startup config.</div>
+        <div class="code-snip">@Component({
+  standalone: true,
+  imports: [CommonModule, RouterModule, FormsModule],
+  template: `...`
+})
+export class TodoListComponent { ... }</div>
+      </div>
+    </div>
+  </div></div>
+</div><!-- /scene 1 -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCENE 2 — TODOLIST COMPONENT (full code)
+════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-2">
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-comp)"><div class="col-hdr-dot"></div>Building Map</div>
+    <div class="scene-title">TodoListComponent</div>
+    <div class="scene-sub">Two floors: the HTML lobby and the TypeScript brain.</div>
+    <div class="city-map" style="height:500px">
+      <svg id="s2-svg"></svg>
+      <!-- outer dashed border representing the component -->
+      <div style="position:absolute;inset:4%;border:1.5px dashed var(--dim);border-radius:12px;pointer-events:none">
+        <div style="position:absolute;top:-10px;left:10px;background:var(--bg);padding:0 6px;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--dim)">TodoListComponent</div>
+      </div>
+      <div class="cbox hl-comp"  style="left:8%;top:6%;width:84%;height:48px;border-color:var(--c-comp)"  onclick="pick('s2-decorator')"><div class="cbox-icon">🏷️</div><div class="cbox-lbl">@Component decorator</div></div>
+      <div class="cbox hl-di"    style="left:8%;top:21%;width:84%;height:48px;border-color:var(--c-di)"    onclick="pick('s2-di')"       ><div class="cbox-icon">💉</div><div class="cbox-lbl">constructor — DI injects service + router</div></div>
+      <div class="cbox hl-rxjs"  style="left:8%;top:36%;width:84%;height:48px;border-color:var(--c-rxjs)"  onclick="pick('s2-ngoninit')" ><div class="cbox-icon">🌊</div><div class="cbox-lbl">ngOnInit — subscribe to Observable</div></div>
+      <div class="cbox hl-event" style="left:8%;top:51%;width:40%;height:48px;border-color:var(--c-event)" onclick="pick('s2-addtodo')"  ><div class="cbox-icon">➕</div><div class="cbox-lbl">addTodo()</div></div>
+      <div class="cbox hl-event" style="right:8%;top:51%;width:40%;height:48px;border-color:var(--c-event)" onclick="pick('s2-delete')"   ><div class="cbox-icon">🗑️</div><div class="cbox-lbl">deleteTodo()</div></div>
+      <div class="cbox hl-tmpl"  style="left:8%;top:68%;width:84%;height:48px;border-color:var(--c-tmpl)"  onclick="pick('s2-html')"     ><div class="cbox-icon">🪟</div><div class="cbox-lbl">HTML template — bindings + directives</div></div>
+      <div class="cbox hl-bind2" style="left:8%;top:84%;width:40%;height:40px;border-color:var(--c-bind2)" onclick="pick('s2-bind2')"    ><div class="cbox-icon">📻</div><div class="cbox-lbl">[(ngModel)]</div></div>
+      <div class="cbox hl-tmpl"  style="right:8%;top:84%;width:40%;height:40px;border-color:var(--c-tmpl)" onclick="pick('s2-ngfor')"    ><div class="cbox-icon">📑</div><div class="cbox-lbl">*ngFor</div></div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-comp)"><div class="col-hdr-dot"></div>Full Component Code</div>
+
+    <!-- File tabs -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div class="file-tabs" data-tabgroup="s2">
+        <div class="ftab active" style="color:var(--c-comp)" onclick="switchTab(this,'s2-ts')">todo-list.component.ts</div>
+        <div class="ftab"        style="color:var(--c-tmpl)" onclick="switchTab(this,'s2-html-tab')">todo-list.component.html</div>
+        <div class="ftab"        style="color:#f472b6"        onclick="switchTab(this,'s2-css-tab')">todo-list.component.css</div>
+      </div>
+
+      <div class="file-content active" data-tabgroup="s2" id="s2-ts">
+<pre>
+<span class="kw">import</span> { Component, OnInit, OnDestroy } <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+<span class="kw">import</span> { Router } <span class="kw">from</span> <span class="st">'@angular/router'</span>;
+<span class="kw">import</span> { <span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">Subject</span> } <span class="kw">from</span> <span class="st">'rxjs'</span>;
+<span class="kw">import</span> { <span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">takeUntil</span> } <span class="kw">from</span> <span class="st">'rxjs/operators'</span>;
+<span class="kw">import</span> { <span class="hl hl-svc"  onclick="pick('s2-di')">TodoService</span> } <span class="kw">from</span> <span class="st">'../services/todo.service'</span>;
+<span class="kw">import</span> { <span class="ty">Todo</span> } <span class="kw">from</span> <span class="st">'../models/todo.model'</span>;
+
+<span class="hl hl-comp" onclick="pick('s2-decorator')">@Component</span>({
+  selector:    <span class="st">'app-todo-list'</span>,
+  templateUrl: <span class="st">'./todo-list.component.html'</span>,
+  styleUrls:   [<span class="st">'./todo-list.component.css'</span>]
+})
+<span class="kw">export class</span> <span class="ty">TodoListComponent</span> <span class="kw">implements</span> OnInit, OnDestroy {
+
+  <span class="cm">// ── State (manager's notepad) ─────────────────────</span>
+  <span class="hl hl-comp"  onclick="pick('s2-decorator')">todos:        <span class="ty">Todo[]</span>   = [];</span>
+  <span class="hl hl-bind2" onclick="pick('s2-bind2')">newTodoTitle: <span class="ty">string</span>  = <span class="st">''</span>;</span>  <span class="cm">← two-way bound to input</span>
+  <span class="hl hl-tmpl"  onclick="pick('s2-ngif')">isLoading:    <span class="ty">boolean</span> = <span class="kw">true</span>;</span>
+  <span class="hl hl-tmpl"  onclick="pick('s2-ngif')">errorMsg:     <span class="ty">string</span>  = <span class="st">''</span>;</span>
+
+  <span class="cm">// ── Unsubscribe helper ────────────────────────────</span>
+  <span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">private destroy$ = <span class="kw">new</span> Subject&lt;<span class="ty">void</span>&gt;();</span>
+
+  <span class="cm">// ── DI: Angular injects these automatically ───────</span>
+  <span class="kw">constructor</span>(
+    <span class="hl hl-di"    onclick="pick('s2-di')">private todoService: <span class="ty">TodoService</span></span>,
+    <span class="hl hl-route" onclick="pick('s2-navigate')">private router:      <span class="ty">Router</span></span>
+  ) {}
+
+  <span class="cm">// ── Lifecycle: runs once after component mounts ───</span>
+  <span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">ngOnInit</span>(): <span class="ty">void</span> {
+    <span class="hl hl-svc" onclick="pick('s2-di')">this.todoService</span>.<span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">getAll()</span>
+      .<span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">pipe(takeUntil(this.destroy$))</span>  <span class="cm">// auto-unsubscribe</span>
+      .<span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">subscribe</span>({
+        next:  (todos) => {
+          <span class="hl hl-comp" onclick="pick('s2-decorator')">this.todos</span>     = todos;
+          <span class="hl hl-tmpl" onclick="pick('s2-ngif')">this.isLoading</span> = <span class="kw">false</span>;
+        },
+        error: (err) => {
+          <span class="hl hl-tmpl" onclick="pick('s2-ngif')">this.errorMsg</span>  = <span class="st">'Failed to load todos'</span>;
+          <span class="hl hl-tmpl" onclick="pick('s2-ngif')">this.isLoading</span> = <span class="kw">false</span>;
+        }
+      });
+  }
+
+  <span class="cm">// ── Add a new todo ────────────────────────────────</span>
+  <span class="hl hl-event" onclick="pick('s2-addtodo')">addTodo</span>(): <span class="ty">void</span> {
+    <span class="kw">const</span> title = <span class="hl hl-bind2" onclick="pick('s2-bind2')">this.newTodoTitle</span>.trim();
+    <span class="kw">if</span> (!title) <span class="kw">return</span>;
+
+    <span class="hl hl-svc" onclick="pick('s2-di')">this.todoService</span>.<span class="hl hl-event" onclick="pick('s2-addtodo')">add(title)</span>
+      .pipe(<span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">takeUntil(this.destroy$)</span>)
+      .subscribe(newTodo => {
+        <span class="hl hl-comp" onclick="pick('s2-decorator')">this.todos</span>     = [...<span class="hl hl-comp" onclick="pick('s2-decorator')">this.todos</span>, newTodo];
+        <span class="hl hl-bind2" onclick="pick('s2-bind2')">this.newTodoTitle</span> = <span class="st">''</span>;  <span class="cm">// clears the input</span>
+      });
+  }
+
+  <span class="cm">// ── Delete a todo ─────────────────────────────────</span>
+  <span class="hl hl-event" onclick="pick('s2-delete')">deleteTodo(id: <span class="ty">number</span>)</span>: <span class="ty">void</span> {
+    <span class="hl hl-svc" onclick="pick('s2-di')">this.todoService</span>.<span class="hl hl-event" onclick="pick('s2-delete')">delete(id)</span>
+      .pipe(<span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">takeUntil(this.destroy$)</span>)
+      .subscribe(() => {
+        <span class="hl hl-comp" onclick="pick('s2-decorator')">this.todos</span> = <span class="hl hl-comp" onclick="pick('s2-decorator')">this.todos</span>.filter(t => t.id !== id);
+      });
+  }
+
+  <span class="cm">// ── Toggle complete ───────────────────────────────</span>
+  <span class="hl hl-event" onclick="pick('s2-addtodo')">toggleComplete(todo: <span class="ty">Todo</span>)</span>: <span class="ty">void</span> {
+    <span class="kw">const</span> updated = { ...todo, completed: !todo.completed };
+    <span class="hl hl-svc" onclick="pick('s2-di')">this.todoService</span>.update(updated)
+      .subscribe(t => {
+        <span class="hl hl-comp" onclick="pick('s2-decorator')">this.todos</span> = <span class="hl hl-comp" onclick="pick('s2-decorator')">this.todos</span>.map(x => x.id === t.id ? t : x);
+      });
+  }
+
+  <span class="cm">// ── Navigate to detail page ───────────────────────</span>
+  <span class="hl hl-route" onclick="pick('s2-navigate')">viewDetail(id: <span class="ty">number</span>)</span>: <span class="ty">void</span> {
+    <span class="hl hl-route" onclick="pick('s2-navigate')">this.router.navigate([<span class="st">'/todos'</span>, id]);</span>
+  }
+
+  <span class="cm">// ── Cleanup on component destroy ──────────────────</span>
+  <span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">ngOnDestroy</span>(): <span class="ty">void</span> {
+    <span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">this.destroy$.next();</span>
+    <span class="hl hl-rxjs" onclick="pick('s2-ngoninit')">this.destroy$.complete();</span>
+  }
+}
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s2" id="s2-html-tab">
+<pre>
+<span class="cm">&lt;!-- Loading state ──────────────────────────────── --&gt;</span>
+&lt;div <span class="hl hl-tmpl" onclick="pick('s2-ngif')">*ngIf="isLoading"</span>
+     class="loading"&gt;
+  ⏳ Loading todos...
+&lt;/div&gt;
+
+<span class="cm">&lt;!-- Error state ────────────────────────────────── --&gt;</span>
+&lt;div <span class="hl hl-tmpl" onclick="pick('s2-ngif')">*ngIf="errorMsg"</span>
+     class="error"&gt;
+  ❌ <span class="hl hl-bind1" onclick="pick('s2-bind1')">{{ errorMsg }}</span>
+&lt;/div&gt;
+
+<span class="cm">&lt;!-- Main content ───────────────────────────────── --&gt;</span>
+&lt;div <span class="hl hl-tmpl" onclick="pick('s2-ngif')">*ngIf="!isLoading &amp;&amp; !errorMsg"</span>&gt;
+
+  &lt;h1&gt;📋 Todo List&lt;/h1&gt;
+
+  <span class="cm">&lt;!-- Add form ── two-way walkie-talkie ─────────── --&gt;</span>
+  &lt;div class="add-form"&gt;
+    &lt;input
+      <span class="hl hl-bind2" onclick="pick('s2-bind2')">[(ngModel)]="newTodoTitle"</span>
+      <span class="hl hl-event" onclick="pick('s2-addtodo')">(keyup.enter)="addTodo()"</span>
+      placeholder="What needs to be done?" /&gt;
+    &lt;button
+      <span class="hl hl-event" onclick="pick('s2-addtodo')">(click)="addTodo()"</span>
+      <span class="hl hl-bind1" onclick="pick('s2-bind1')">[disabled]="!newTodoTitle.trim()"</span>&gt;
+      Add
+    &lt;/button&gt;
+  &lt;/div&gt;
+
+  <span class="cm">&lt;!-- List ── photocopier ────────────────────────── --&gt;</span>
+  &lt;ul&gt;
+    &lt;li
+      <span class="hl hl-tmpl"  onclick="pick('s2-ngfor')" >*ngFor="let todo of todos; trackBy: trackById"</span>
+      <span class="hl hl-bind1" onclick="pick('s2-bind1')">[class.completed]="todo.completed"</span>&gt;
+
+      <span class="cm">&lt;!-- checkbox ── event binding ─────────────── --&gt;</span>
+      &lt;input type="checkbox"
+        <span class="hl hl-bind1" onclick="pick('s2-bind1')">[checked]="todo.completed"</span>
+        <span class="hl hl-event" onclick="pick('s2-addtodo')">(change)="toggleComplete(todo)"</span> /&gt;
+
+      <span class="cm">&lt;!-- title ── interpolation ────────────────── --&gt;</span>
+      &lt;span
+        <span class="hl hl-event" onclick="pick('s2-navigate')">(click)="viewDetail(todo.id)"</span>&gt;
+        <span class="hl hl-bind1" onclick="pick('s2-bind1')">{{ todo.title }}</span>
+      &lt;/span&gt;
+
+      <span class="cm">&lt;!-- delete ── event binding ───────────────── --&gt;</span>
+      &lt;button
+        <span class="hl hl-event" onclick="pick('s2-delete')">(click)="deleteTodo(todo.id)"</span>&gt;
+        🗑️
+      &lt;/button&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+
+  <span class="cm">&lt;!-- Count ── one-way binding ───────────────────── --&gt;</span>
+  &lt;p&gt;
+    <span class="hl hl-bind1" onclick="pick('s2-bind1')">{{ todos.length }}</span> todo(s) total ·
+    <span class="hl hl-bind1" onclick="pick('s2-bind1')">{{ todos | completedCount }}</span> done
+  &lt;/p&gt;
+&lt;/div&gt;
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s2" id="s2-css-tab">
+<pre>
+<span class="cm">/* ── todo-list.component.css ─────────────────────── */</span>
+<span class="cm">/* Angular uses View Encapsulation: styles here      */</span>
+<span class="cm">/* ONLY apply to THIS component's template.          */</span>
+<span class="cm">/* Angular adds a unique attribute [_ngcontent-xxx]  */</span>
+<span class="cm">/* to each element so styles don't leak out.         */</span>
+
+<span class="hl hl-comp" onclick="pick('s2-encap')">:host</span> {           <span class="cm">/* the component's root element itself */</span>
+  display: block;
+  padding: 24px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #1a1a2e;
+}
+
+<span class="cm">/* ── Add form ─────────────────────────────────── */</span>
+.add-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.add-form input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.add-form input:focus {
+  outline: none;
+  border-color: #61dafb;
+}
+
+.add-form button {
+  padding: 10px 20px;
+  background: #61dafb;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.add-form button:hover    { background: #38bdf8; }
+.add-form button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+<span class="cm">/* ── Todo list ───────────────────────────────── */</span>
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #fff;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+li:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  border-color: #cbd5e1;
+}
+
+<span class="cm">/* ── Completed state ─────────────────────────── */</span>
+<span class="hl hl-bind1" onclick="pick('s2-bind1')">li.completed</span> {             <span class="cm">/* added by [class.completed] binding */</span>
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  opacity: 0.7;
+}
+
+<span class="hl hl-bind1" onclick="pick('s2-bind1')">li.completed span</span> {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+<span class="cm">/* ── Span (clickable title) ──────────────────── */</span>
+li span {
+  flex: 1;
+  font-size: 14px;
+  cursor: pointer;
+  color: #1e293b;
+  transition: color 0.2s;
+}
+
+li span:hover { color: #0ea5e9; }
+
+<span class="cm">/* ── Delete button ───────────────────────────── */</span>
+li button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+li:hover button { opacity: 1; }
+li button:hover  { background: #fee2e2; }
+
+<span class="cm">/* ── Loading / error states ──────────────────── */</span>
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+<span class="cm">/* ── Footer count ────────────────────────────── */</span>
+p {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: right;
+}
+</pre>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-tmpl)"><div class="col-hdr-dot"></div>The Story</div>
+    <div class="story-hint">👆 Click any highlighted chunk to understand what it does.</div>
+    <div class="ccard" id="cc-s2-decorator" style="color:var(--c-comp)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🏷️</div><div><div class="ccard-title">@Component decorator</div><div class="ccard-sub">Registers the component with Angular</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-comp)">🏷️ <strong>The Name Badge</strong> — The decorator is like a name badge. It tells Angular: "my HTML tag is <code>app-todo-list</code>, my lobby is in this file, my stylesheet is in that file." Without it, the class is just a plain TypeScript class Angular knows nothing about.</div>
+        <div class="code-snip">@Component({
+  selector:    'app-todo-list',  // &lt;app-todo-list&gt; in HTML
+  templateUrl: './todo-list.component.html',
+  styleUrls:   ['./todo-list.component.css']
+})</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-di" style="color:var(--c-di)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💉</div><div><div class="ccard-title">constructor — DI</div><div class="ccard-sub">Angular auto-provides services</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-di)">💉 <strong>Room Service</strong> — The constructor is where the manager lists what they need. They write "I need a TodoService and a Router." Angular's front desk looks up the directory and hands them both automatically. You never write <code>new TodoService()</code>.</div>
+        <div class="angular-def">Constructor injection: declare parameters with types, Angular provides them. The <code>private</code> keyword also creates a class property automatically.</div>
+        <div class="code-snip">constructor(
+  private todoService: TodoService,  // ← Angular provides this
+  private router: Router             // ← and this
+) {}
+// this.todoService is now ready to use anywhere in the class</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-ngoninit" style="color:var(--c-rxjs)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🌊</div><div><div class="ccard-title">ngOnInit + subscribe</div><div class="ccard-sub">Turn on the tap when building opens</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-rxjs)">🌊 <strong>Opening Day</strong> — <code>ngOnInit</code> runs once, right after the building opens. It turns on the tap: calls <code>getAll()</code> (starts HTTP request), and the data flows in as an Observable. <code>takeUntil(destroy$)</code> is the automatic valve that closes the tap when the building closes (component destroyed) — preventing memory leaks.</div>
+        <div class="angular-def">ngOnInit is Angular's "after construction" hook. subscribe() starts the Observable. takeUntil + Subject is the clean unsubscribe pattern.</div>
+        <div class="code-snip">private destroy$ = new Subject&lt;void&gt;();
+
+ngOnInit() {
+  this.todoService.getAll()
+    .pipe(takeUntil(this.destroy$)) // auto-close tap
+    .subscribe({ next: todos => this.todos = todos });
+}
+
+ngOnDestroy() {
+  this.destroy$.next();     // emit = close all taps
+  this.destroy$.complete(); // clean up the signal
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-addtodo" style="color:var(--c-event)">
+      <div class="ccard-hdr"><div class="ccard-emoji">➕</div><div><div class="ccard-title">addTodo() / toggleComplete()</div><div class="ccard-sub">Event handler methods</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-event)">🔔 <strong>When the Doorbell Rings</strong> — These methods run when the user clicks a button or presses Enter. They call the service (delivery company) to save the change to the API, then update the local <code>todos</code> array so the screen refreshes.</div>
+        <div class="angular-def">Event handler methods are called by event bindings in the template. After the service responds, update state immutably (spread operator) so Angular's change detection picks up the change.</div>
+        <div class="code-snip">addTodo(): void {
+  const title = this.newTodoTitle.trim();
+  if (!title) return;         // guard: no empty todos
+  this.todoService.add(title)
+    .subscribe(newTodo => {
+      this.todos = [...this.todos, newTodo]; // immutable update
+      this.newTodoTitle = '';               // clear input
+    });
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-delete" style="color:var(--c-event)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🗑️</div><div><div class="ccard-title">deleteTodo(id)</div><div class="ccard-sub">Remove from API + update local array</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-event)">🗑️ <strong>Demolishing a Room</strong> — When the user clicks delete, the service sends a DELETE request to the API. When it succeeds, the local array is filtered to remove the item. Angular notices the new array reference and re-renders the list.</div>
+        <div class="code-snip">deleteTodo(id: number): void {
+  this.todoService.delete(id).subscribe(() => {
+    // filter creates a NEW array — Angular re-renders
+    this.todos = this.todos.filter(t => t.id !== id);
+  });
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-bind2" style="color:var(--c-bind2)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📻</div><div><div class="ccard-title">[(ngModel)] Two-way binding</div><div class="ccard-sub">The walkie-talkie</div></div><div class="ccard-tag" style="background:rgba(251,146,60,.15);color:var(--c-bind2)">⇄ both ways</div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-bind2)">📻 <strong>Walkie-Talkie</strong> — The input box and <code>newTodoTitle</code> are in constant two-way contact. User types → variable updates instantly. Manager sets variable to <code>''</code> → input clears instantly. Both sides always in sync. Requires <code>FormsModule</code> to be imported.</div>
+        <div class="code-snip">&lt;input [(ngModel)]="newTodoTitle" /&gt;
+
+&lt;!-- Same as writing both directions manually: --&gt;
+&lt;input
+  [ngModel]="newTodoTitle"               &lt;!-- class→HTML --&gt;
+  (ngModelChange)="newTodoTitle=$event"  &lt;!-- HTML→class --&gt;
+/&gt;</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-bind1" style="color:var(--c-bind1)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📺</div><div><div class="ccard-title">{{ }} and [prop] One-way binding</div><div class="ccard-sub">The TV screen</div></div><div class="ccard-tag" style="background:rgba(59,130,246,.15);color:var(--c-bind1)">→ only</div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-bind1)">📺 <strong>The TV Screen</strong> — The class broadcasts to the template. <code>{{ todo.title }}</code> displays text. <code>[disabled]="!title"</code> sets an attribute. <code>[class.completed]="todo.completed"</code> adds/removes a CSS class. It's one-way: class→template only.</div>
+        <div class="code-snip">&lt;span&gt;{{ todo.title }}&lt;/span&gt;          &lt;!-- interpolation --&gt;
+&lt;button [disabled]="!title"&gt;Add&lt;/button&gt; &lt;!-- property --&gt;
+&lt;li [class.done]="todo.completed"&gt;       &lt;!-- CSS class --&gt;
+&lt;img [src]="todo.imageUrl" /&gt;            &lt;!-- attribute --&gt;</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-ngfor" style="color:var(--c-tmpl)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📑</div><div><div class="ccard-title">*ngFor</div><div class="ccard-sub">The photocopier</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-tmpl)">📑 <strong>The Photocopier</strong> — *ngFor takes one &lt;li&gt; template and copies it once for every item in the array. 10 todos = 10 copies, each filled with different data. <code>trackBy</code> is like labelling each photocopy with an ID so Angular only reprints changed copies.</div>
+        <div class="code-snip">&lt;li *ngFor="let todo of todos; trackBy: trackById"&gt;
+  {{ todo.title }}
+&lt;/li&gt;
+
+// In the class:
+trackById(index: number, todo: Todo): number {
+  return todo.id; // Angular uses this to avoid full re-renders
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-ngif" style="color:var(--c-tmpl)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💡</div><div><div class="ccard-title">*ngIf</div><div class="ccard-sub">The light switch</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-tmpl)">💡 <strong>The Light Switch</strong> — *ngIf doesn't just hide elements — it <em>removes</em> them from the DOM entirely. When <code>isLoading</code> is true, the spinner is in the DOM and the list is not. When <code>isLoading</code> is false, it flips: spinner gone, list appears.</div>
+        <div class="code-snip">&lt;div *ngIf="isLoading"&gt;⏳ Loading...&lt;/div&gt;
+
+&lt;!-- Angular 17+ native @if (no import needed): --&gt;
+@if (isLoading) {
+  &lt;div&gt;⏳ Loading...&lt;/div&gt;
+} @else {
+  &lt;ul&gt;...&lt;/ul&gt;
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-navigate" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🚗</div><div><div class="ccard-title">router.navigate()</div><div class="ccard-sub">Programmatic navigation</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🚗 <strong>Calling a Taxi</strong> — When a user clicks a todo title, the manager calls a taxi (router.navigate) and gives it an address: <code>['/todos', todo.id]</code>. The taxi drives to that URL and the router renders TodoDetailComponent in the magic door.</div>
+        <div class="code-snip">// In TypeScript — programmatic
+this.router.navigate(['/todos', todo.id]);
+// navigates to /todos/5
+
+// In HTML — declarative
+&lt;a [routerLink]="['/todos', todo.id]"&gt;View&lt;/a&gt;</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s2-encap" style="color:#f472b6">
+      <div class="ccard-hdr"><div class="ccard-emoji">🔒</div><div><div class="ccard-title">View Encapsulation</div><div class="ccard-sub">CSS scoped to this component only</div></div><div class="ccard-tag" style="background:rgba(244,114,182,.15);color:#f472b6">:host</div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-left:3px solid #f472b6;border-radius:0 7px 7px 0;padding:9px 11px;margin-bottom:10px;background:rgba(255,255,255,.025)">🔒 <strong>The Walled Garden</strong> — Angular automatically wraps every component's CSS so it can <em>only</em> affect that component's own HTML. A style you write in <code>todo-list.component.css</code> will never accidentally change the nav bar or the detail page. Angular does this by adding a unique attribute (like <code>[_ngcontent-abc123]</code>) to every element and selector behind the scenes. <code>:host</code> lets you target the component's outermost element itself.</div>
+        <div class="angular-def">View Encapsulation (default: Emulated) adds unique attribute selectors to make CSS component-scoped. <code>:host</code> targets the component element itself. <code>::ng-deep</code> pierces encapsulation (use sparingly). <code>styles.css</code> is the only truly global stylesheet.</div>
+        <div class="code-snip">/* todo-list.component.css */
+:host { display: block; padding: 24px; }  /* the &lt;app-todo-list&gt; element */
+li { color: red; }  /* ONLY affects &lt;li&gt; inside THIS component */
+
+/* Angular compiles this to: */
+li[_ngcontent-abc123] { color: red; }
+/* so it can never leak to other components */</div>
+      </div>
+    </div>
+  </div></div>
+</div><!-- /scene 2 -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCENE 3 — TODOSERVICE (full code)
+════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-3">
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-svc)"><div class="col-hdr-dot"></div>Delivery Company Map</div>
+    <div class="scene-title">TodoService</div>
+    <div class="scene-sub">All HTTP calls live here. Components stay thin.</div>
+    <div class="city-map" style="height:480px">
+      <svg id="s3-svg"></svg>
+      <div class="cbox hl-di"    style="left:5%;top:1%;width:90%;height:48px;border-color:var(--c-di)"   onclick="pick('s3-injectable')"><div class="cbox-icon">💉</div><div class="cbox-lbl">@Injectable({ providedIn:'root' }) — singleton</div></div>
+      <div class="cbox hl-di"    style="left:5%;top:16%;width:90%;height:48px;border-color:var(--c-di)"   onclick="pick('s3-httpclient')"><div class="cbox-icon">🔌</div><div class="cbox-lbl">constructor — HttpClient injected by DI</div></div>
+      <div class="cbox hl-svc"   style="left:5%;top:31%;width:42%;height:48px;border-color:var(--c-svc)"   onclick="pick('s3-getall')"   ><div class="cbox-icon">📥</div><div class="cbox-lbl">getAll() — GET /todos</div></div>
+      <div class="cbox hl-svc"   style="right:5%;top:31%;width:42%;height:48px;border-color:var(--c-svc)"   onclick="pick('s3-getbyid')"  ><div class="cbox-icon">🔍</div><div class="cbox-lbl">getById() — GET /todos/:id</div></div>
+      <div class="cbox hl-svc"   style="left:5%;top:47%;width:42%;height:48px;border-color:var(--c-svc)"   onclick="pick('s3-add')"      ><div class="cbox-icon">➕</div><div class="cbox-lbl">add() — POST /todos</div></div>
+      <div class="cbox hl-svc"   style="right:5%;top:47%;width:42%;height:48px;border-color:var(--c-svc)"   onclick="pick('s3-delete')"   ><div class="cbox-icon">🗑️</div><div class="cbox-lbl">delete() — DELETE /todos/:id</div></div>
+      <div class="cbox hl-rxjs"  style="left:5%;top:62%;width:90%;height:48px;border-color:var(--c-rxjs)"   onclick="pick('s3-pipe')"     ><div class="cbox-icon">⚙️</div><div class="cbox-lbl">.pipe(map, tap, catchError) — operators</div></div>
+      <div class="cbox"          style="left:5%;top:78%;width:90%;height:48px;border-color:var(--dim);background:rgba(255,255,255,.02)" onclick="pick('s3-api')"><div class="cbox-icon">🌐</div><div class="cbox-lbl" style="color:var(--muted)">JSONPlaceholder REST API (external)</div></div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-svc)"><div class="col-hdr-dot"></div>Full Service Code</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div class="code-file-hdr"><div class="dot" style="background:var(--c-svc)"></div>todo.service.ts</div>
+<pre>
+<span class="kw">import</span> { <span class="hl hl-di"   onclick="pick('s3-injectable')">Injectable</span> }  <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="hl hl-di"   onclick="pick('s3-httpclient')">HttpClient</span> }   <span class="kw">from</span> <span class="st">'@angular/common/http'</span>;
+<span class="kw">import</span> { <span class="hl hl-rxjs" onclick="pick('s3-getall')">Observable</span>, <span class="hl hl-rxjs" onclick="pick('s3-pipe')">throwError</span> } <span class="kw">from</span> <span class="st">'rxjs'</span>;
+<span class="kw">import</span> { <span class="hl hl-rxjs" onclick="pick('s3-pipe')">map, tap, catchError, retry</span> } <span class="kw">from</span> <span class="st">'rxjs/operators'</span>;
+<span class="kw">import</span> { <span class="ty">Todo</span> } <span class="kw">from</span> <span class="st">'../models/todo.model'</span>;
+
+<span class="kw">const</span> API_URL = <span class="st">'https://jsonplaceholder.typicode.com/todos'</span>;
+
+<span class="cm">// ── @Injectable ────────────────────────────────────────</span>
+<span class="cm">// providedIn:'root' = one instance shared by whole app.</span>
+<span class="cm">// No need to add to providers[] in AppModule.</span>
+<span class="hl hl-di" onclick="pick('s3-injectable')">@Injectable({ providedIn: <span class="st">'root'</span> })</span>
+<span class="kw">export class</span> <span class="ty">TodoService</span> {
+
+  <span class="cm">// ── DI: Angular provides HttpClient automatically ──</span>
+  <span class="kw">constructor</span>(<span class="hl hl-di" onclick="pick('s3-httpclient')">private http: <span class="ty">HttpClient</span></span>) {}
+
+  <span class="cm">// ── GET all todos ──────────────────────────────────</span>
+  <span class="hl hl-svc" onclick="pick('s3-getall')">getAll(): <span class="ty">Observable</span>&lt;<span class="ty">Todo[]</span>&gt;</span> {
+    <span class="kw">return</span> <span class="hl hl-di" onclick="pick('s3-httpclient')">this.http</span>.get&lt;<span class="ty">Todo[]</span>&gt;(API_URL)
+      .pipe(
+        <span class="hl hl-rxjs" onclick="pick('s3-pipe')">map</span>(todos => todos.slice(0, 20)),   <span class="cm">// keep first 20</span>
+        <span class="hl hl-rxjs" onclick="pick('s3-pipe')">tap</span>(todos => console.log(<span class="st">'Loaded:'</span>, todos.length)),
+        <span class="hl hl-rxjs" onclick="pick('s3-pipe')">retry</span>(2),                          <span class="cm">// retry twice on failure</span>
+        <span class="hl hl-rxjs" onclick="pick('s3-pipe')">catchError</span>(this.handleError)
+      );
+  }
+
+  <span class="cm">// ── GET single todo by id ─────────────────────────</span>
+  <span class="hl hl-svc" onclick="pick('s3-getbyid')">getById(id: <span class="ty">number</span>): <span class="ty">Observable</span>&lt;<span class="ty">Todo</span>&gt;</span> {
+    <span class="kw">return</span> <span class="hl hl-di" onclick="pick('s3-httpclient')">this.http</span>.get&lt;<span class="ty">Todo</span>&gt;(`${API_URL}/${id}`)
+      .pipe(
+        <span class="hl hl-rxjs" onclick="pick('s3-pipe')">catchError</span>(this.handleError)
+      );
+  }
+
+  <span class="cm">// ── POST create new todo ───────────────────────────</span>
+  <span class="hl hl-svc" onclick="pick('s3-add')">add(title: <span class="ty">string</span>): <span class="ty">Observable</span>&lt;<span class="ty">Todo</span>&gt;</span> {
+    <span class="kw">const</span> newTodo = { title, completed: <span class="kw">false</span>, userId: 1 };
+    <span class="kw">return</span> <span class="hl hl-di" onclick="pick('s3-httpclient')">this.http</span>.post&lt;<span class="ty">Todo</span>&gt;(API_URL, newTodo)
+      .pipe(
+        <span class="hl hl-rxjs" onclick="pick('s3-pipe')">tap</span>(todo => console.log(<span class="st">'Created:'</span>, todo)),
+        <span class="hl hl-rxjs" onclick="pick('s3-pipe')">catchError</span>(this.handleError)
+      );
+  }
+
+  <span class="cm">// ── PUT update todo ────────────────────────────────</span>
+  <span class="hl hl-svc" onclick="pick('s3-add')">update(todo: <span class="ty">Todo</span>): <span class="ty">Observable</span>&lt;<span class="ty">Todo</span>&gt;</span> {
+    <span class="kw">return</span> <span class="hl hl-di" onclick="pick('s3-httpclient')">this.http</span>.put&lt;<span class="ty">Todo</span>&gt;(`${API_URL}/${todo.id}`, todo)
+      .pipe(<span class="hl hl-rxjs" onclick="pick('s3-pipe')">catchError</span>(this.handleError));
+  }
+
+  <span class="cm">// ── DELETE todo ────────────────────────────────────</span>
+  <span class="hl hl-svc" onclick="pick('s3-delete')">delete(id: <span class="ty">number</span>): <span class="ty">Observable</span>&lt;<span class="ty">void</span>&gt;</span> {
+    <span class="kw">return</span> <span class="hl hl-di" onclick="pick('s3-httpclient')">this.http</span>.delete&lt;<span class="ty">void</span>&gt;(`${API_URL}/${id}`)
+      .pipe(<span class="hl hl-rxjs" onclick="pick('s3-pipe')">catchError</span>(this.handleError));
+  }
+
+  <span class="cm">// ── Error handler ──────────────────────────────────</span>
+  <span class="kw">private</span> <span class="hl hl-rxjs" onclick="pick('s3-pipe')">handleError(error: any)</span> {
+    console.error(<span class="st">'API Error:'</span>, error.message);
+    <span class="kw">return</span> throwError(() => <span class="kw">new</span> Error(error.message));
+  }
+}
+</pre>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-tmpl)"><div class="col-hdr-dot"></div>The Story</div>
+    <div class="story-hint">👆 Click any highlighted chunk to understand services, HTTP, and RxJS operators.</div>
+    <div class="ccard" id="cc-s3-injectable" style="color:var(--c-di)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💉</div><div><div class="ccard-title">@Injectable({ providedIn: 'root' })</div><div class="ccard-sub">One instance, shared city-wide</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-di)">💉 <strong>City-Wide Contract</strong> — <code>providedIn: 'root'</code> means Angular creates exactly ONE TodoService for the whole app. Every component that asks for it gets the same instance. Think of it as one delivery company with one truck — everyone shares it.</div>
+        <div class="angular-def">providedIn: 'root' registers the service in the root injector as a singleton. It's also tree-shakeable — if nothing injects it, it's removed from the bundle.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s3-httpclient" style="color:var(--c-di)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🔌</div><div><div class="ccard-title">HttpClient</div><div class="ccard-sub">Angular's HTTP superpower</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-di)">🔌 <strong>The Delivery Van</strong> — Angular injects <code>HttpClient</code> into the service's constructor. This is the van the delivery company uses to drive to the API. <code>http.get()</code>, <code>http.post()</code>, <code>http.delete()</code> — all return Observables (the pipe that data flows through).</div>
+        <div class="angular-def">HttpClient is Angular's built-in HTTP service. All methods return typed Observables. Requires HttpClientModule (or provideHttpClient()) to be set up in AppModule/config.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s3-getall" style="color:var(--c-svc)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📥</div><div><div class="ccard-title">getAll(): Observable&lt;Todo[]&gt;</div><div class="ccard-sub">Fetch all todos from API</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-svc)">📥 <strong>Big Shop Run</strong> — The service drives to the API (<code>GET /todos</code>) and comes back with an array of todos. But it returns an Observable — a pipe — not the data directly. The component turns on the tap (subscribe or async pipe) to receive the data when it arrives.</div>
+        <div class="angular-def">http.get&lt;Todo[]&gt;(url) makes a GET request and returns Observable&lt;Todo[]&gt;. Nothing actually runs until something subscribes. The pipe() chain applies operators before delivering the data.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s3-getbyid" style="color:var(--c-svc)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🔍</div><div><div class="ccard-title">getById(id): Observable&lt;Todo&gt;</div><div class="ccard-sub">Fetch one specific todo</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-svc)">🔍 <strong>Specific Order</strong> — Instead of getting all todos, this goes to <code>GET /todos/5</code> (using a template literal to insert the id). Returns a single Todo. The detail component calls this with the id from the URL.</div>
+        <div class="code-snip">getById(id: number): Observable&lt;Todo&gt; {
+  return this.http.get&lt;Todo&gt;(`${API_URL}/${id}`);
+}
+// In component: this.todoService.getById(5)
+// → makes request to /todos/5</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s3-add" style="color:var(--c-svc)">
+      <div class="ccard-hdr"><div class="ccard-emoji">➕</div><div><div class="ccard-title">add() / update()</div><div class="ccard-sub">POST and PUT requests</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-svc)">➕ <strong>Placing an Order</strong> — <code>add()</code> sends a <code>POST</code> request — like phoning in a new order. The API creates the todo and sends back the created item (with a new id). <code>update()</code> sends a <code>PUT</code> — like changing an existing order.</div>
+        <div class="code-snip">add(title: string): Observable&lt;Todo&gt; {
+  const body = { title, completed: false, userId: 1 };
+  return this.http.post&lt;Todo&gt;(API_URL, body);
+  // JSONPlaceholder returns: { id: 201, title, completed, userId }
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s3-delete" style="color:var(--c-svc)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🗑️</div><div><div class="ccard-title">delete(id)</div><div class="ccard-sub">DELETE request</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-svc)">🗑️ <strong>Cancelling an Order</strong> — <code>delete()</code> sends a <code>DELETE</code> to <code>/todos/5</code>. The API removes it and returns nothing (void). When subscribe() runs with no error, the component removes the todo from its local array.</div>
+        <div class="code-snip">delete(id: number): Observable&lt;void&gt; {
+  return this.http.delete&lt;void&gt;(`${API_URL}/${id}`);
+}
+// Returns Observable&lt;void&gt; — subscribe just to know it succeeded</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s3-pipe" style="color:var(--c-rxjs)">
+      <div class="ccard-hdr"><div class="ccard-emoji">⚙️</div><div><div class="ccard-title">.pipe() — RxJS Operators</div><div class="ccard-sub">map · tap · retry · catchError</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-rxjs)">⚙️ <strong>Pipe Filters</strong> — Operators are like filters you attach mid-pipe: <code>map</code> reshapes the water (data), <code>tap</code> lets you peek without changing anything (good for debugging), <code>retry(2)</code> tries again if the pipe bursts, <code>catchError</code> handles the leak gracefully instead of crashing.</div>
+        <div class="code-snip">this.http.get&lt;Todo[]&gt;(API_URL).pipe(
+  map(todos => todos.slice(0, 20)),  // transform
+  tap(data  => console.log(data)),   // side-effect/debug
+  retry(2),                          // retry on error
+  catchError(err => throwError(err)) // handle error
+)</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s3-api" style="color:#94a3b8">
+      <div class="ccard-hdr"><div class="ccard-emoji">🌐</div><div><div class="ccard-title">JSONPlaceholder API</div><div class="ccard-sub">Free mock REST API</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-left-color:#94a3b8">🌐 JSONPlaceholder is a free fake REST API for testing. It returns realistic JSON data with no setup. GET /todos returns 200 todos. POST/PUT/DELETE return mock success responses (data isn't actually stored).</div>
+        <div class="code-snip">Base: https://jsonplaceholder.typicode.com
+GET    /todos        → Todo[]  (200 items)
+GET    /todos/1      → Todo
+POST   /todos        → Todo (new, id=201)
+PUT    /todos/1      → Todo (updated)
+DELETE /todos/1      → {} (empty)</div>
+      </div>
+    </div>
+  </div></div>
+</div><!-- /scene 3 -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCENE 4 — TODODETAIL COMPONENT (full code)
+════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-4">
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-comp)"><div class="col-hdr-dot"></div>Detail Building Map</div>
+    <div class="scene-title">TodoDetailComponent</div>
+    <div class="scene-sub">Reads :id from the URL, fetches one todo, lets you edit it.</div>
+    <div class="city-map" style="height:500px">
+      <svg id="s4-svg"></svg>
+      <div class="cbox hl-route" style="left:5%;top:1%;width:90%;height:48px;border-color:var(--c-route)"  onclick="pick('s4-route')"  ><div class="cbox-icon">🏷️</div><div class="cbox-lbl">ActivatedRoute — reads :id from URL</div></div>
+      <div class="cbox hl-di"    style="left:5%;top:16%;width:90%;height:48px;border-color:var(--c-di)"    onclick="pick('s4-di')"     ><div class="cbox-icon">💉</div><div class="cbox-lbl">constructor — 3 services injected via DI</div></div>
+      <div class="cbox hl-rxjs"  style="left:5%;top:31%;width:90%;height:48px;border-color:var(--c-rxjs)"  onclick="pick('s4-rxjs')"   ><div class="cbox-icon">🌊</div><div class="cbox-lbl">switchMap — reacts to param changes</div></div>
+      <div class="cbox hl-svc"   style="left:5%;top:46%;width:90%;height:48px;border-color:var(--c-svc)"   onclick="pick('s4-fetch')"  ><div class="cbox-icon">📥</div><div class="cbox-lbl">getById() — fetch todo by id</div></div>
+      <div class="cbox hl-event" style="left:5%;top:61%;width:42%;height:48px;border-color:var(--c-event)"  onclick="pick('s4-save')"   ><div class="cbox-icon">💾</div><div class="cbox-lbl">saveTodo() — PUT update</div></div>
+      <div class="cbox hl-route" style="right:5%;top:61%;width:42%;height:48px;border-color:var(--c-route)" onclick="pick('s4-back')"   ><div class="cbox-icon">⬅️</div><div class="cbox-lbl">goBack() — navigate back</div></div>
+      <div class="cbox hl-bind2" style="left:5%;top:77%;width:42%;height:48px;border-color:var(--c-bind2)"  onclick="pick('s4-bind2')"  ><div class="cbox-icon">📻</div><div class="cbox-lbl">[(ngModel)] on edit fields</div></div>
+      <div class="cbox hl-tmpl"  style="right:5%;top:77%;width:42%;height:48px;border-color:var(--c-tmpl)"  onclick="pick('s4-ngif')"   ><div class="cbox-icon">💡</div><div class="cbox-lbl">*ngIf — loading / error / data</div></div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-comp)"><div class="col-hdr-dot"></div>Full Component Code</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div class="file-tabs" data-tabgroup="s4">
+        <div class="ftab active" style="color:var(--c-comp)" onclick="switchTab(this,'s4-ts')">todo-detail.component.ts</div>
+        <div class="ftab"        style="color:var(--c-tmpl)" onclick="switchTab(this,'s4-html-tab')">todo-detail.component.html</div>
+        <div class="ftab"        style="color:#f472b6"        onclick="switchTab(this,'s4-css-tab')">todo-detail.component.css</div>
+      </div>
+
+      <div class="file-content active" data-tabgroup="s4" id="s4-ts">
+<pre>
+<span class="kw">import</span> { Component, OnInit, OnDestroy } <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="hl hl-route" onclick="pick('s4-route')">ActivatedRoute</span>, <span class="hl hl-route" onclick="pick('s4-back')">Router</span> } <span class="kw">from</span> <span class="st">'@angular/router'</span>;
+<span class="kw">import</span> { <span class="hl hl-rxjs" onclick="pick('s4-rxjs')">Subject, switchMap</span> } <span class="kw">from</span> <span class="st">'rxjs'</span>;
+<span class="kw">import</span> { <span class="hl hl-rxjs" onclick="pick('s4-rxjs')">takeUntil</span> } <span class="kw">from</span> <span class="st">'rxjs/operators'</span>;
+<span class="kw">import</span> { <span class="hl hl-svc"   onclick="pick('s4-di')">TodoService</span> } <span class="kw">from</span> <span class="st">'../services/todo.service'</span>;
+<span class="kw">import</span> { <span class="ty">Todo</span> } <span class="kw">from</span> <span class="st">'../models/todo.model'</span>;
+
+@Component({
+  selector:    <span class="st">'app-todo-detail'</span>,
+  templateUrl: <span class="st">'./todo-detail.component.html'</span>
+})
+<span class="kw">export class</span> <span class="ty">TodoDetailComponent</span> <span class="kw">implements</span> OnInit, OnDestroy {
+
+  <span class="cm">// ── State ──────────────────────────────────────────</span>
+  <span class="hl hl-tmpl"  onclick="pick('s4-ngif')">todo:      <span class="ty">Todo</span> | <span class="kw">null</span>   = <span class="kw">null</span>;</span>
+  <span class="hl hl-tmpl"  onclick="pick('s4-ngif')">isLoading: <span class="ty">boolean</span>        = <span class="kw">true</span>;</span>
+  <span class="hl hl-tmpl"  onclick="pick('s4-ngif')">errorMsg:  <span class="ty">string</span>         = <span class="st">''</span>;</span>
+  <span class="hl hl-bind2" onclick="pick('s4-bind2')">editTitle: <span class="ty">string</span>         = <span class="st">''</span>;</span>   <span class="cm">← bound to edit input</span>
+
+  <span class="hl hl-rxjs"  onclick="pick('s4-rxjs')">private destroy$ = <span class="kw">new</span> Subject&lt;<span class="ty">void</span>&gt;();</span>
+
+  <span class="cm">// ── DI: 3 services injected ───────────────────────</span>
+  <span class="kw">constructor</span>(
+    <span class="hl hl-route" onclick="pick('s4-route')">private route:       <span class="ty">ActivatedRoute</span></span>,  <span class="cm">// reads URL params</span>
+    <span class="hl hl-route" onclick="pick('s4-back')">private router:      <span class="ty">Router</span></span>,          <span class="cm">// navigate</span>
+    <span class="hl hl-svc"   onclick="pick('s4-di')">private todoService: <span class="ty">TodoService</span></span>      <span class="cm">// HTTP calls</span>
+  ) {}
+
+  ngOnInit(): <span class="ty">void</span> {
+    <span class="cm">// ── switchMap: when :id param changes, cancel</span>
+    <span class="cm">//    the previous request and start a new one ──</span>
+    <span class="hl hl-route" onclick="pick('s4-route')">this.route.paramMap</span>
+      .pipe(
+        <span class="hl hl-rxjs" onclick="pick('s4-rxjs')">switchMap</span>(params => {
+          <span class="kw">const</span> id = Number(<span class="hl hl-route" onclick="pick('s4-route')">params.get(<span class="st">'id'</span>)</span>);
+          <span class="kw">return</span> <span class="hl hl-svc" onclick="pick('s4-fetch')">this.todoService.getById(id)</span>;
+        }),
+        <span class="hl hl-rxjs" onclick="pick('s4-rxjs')">takeUntil(this.destroy$)</span>
+      )
+      .subscribe({
+        next: (todo) => {
+          <span class="hl hl-tmpl"  onclick="pick('s4-ngif')">this.todo      = todo;</span>
+          <span class="hl hl-bind2" onclick="pick('s4-bind2')">this.editTitle = todo.title;</span>  <span class="cm">// pre-fill edit field</span>
+          <span class="hl hl-tmpl"  onclick="pick('s4-ngif')">this.isLoading = <span class="kw">false</span>;</span>
+        },
+        error: (err) => {
+          <span class="hl hl-tmpl"  onclick="pick('s4-ngif')">this.errorMsg  = <span class="st">'Todo not found'</span>;</span>
+          <span class="hl hl-tmpl"  onclick="pick('s4-ngif')">this.isLoading = <span class="kw">false</span>;</span>
+        }
+      });
+  }
+
+  <span class="cm">// ── Save edited todo ───────────────────────────────</span>
+  <span class="hl hl-event" onclick="pick('s4-save')">saveTodo()</span>: <span class="ty">void</span> {
+    <span class="kw">if</span> (!<span class="hl hl-tmpl" onclick="pick('s4-ngif')">this.todo</span>) <span class="kw">return</span>;
+    <span class="kw">const</span> updated = {
+      ...<span class="hl hl-tmpl" onclick="pick('s4-ngif')">this.todo</span>,
+      title: <span class="hl hl-bind2" onclick="pick('s4-bind2')">this.editTitle</span>   <span class="cm">// take value from edit input</span>
+    };
+    <span class="hl hl-svc" onclick="pick('s4-di')">this.todoService</span>.update(updated)
+      .subscribe(saved => {
+        <span class="hl hl-tmpl" onclick="pick('s4-ngif')">this.todo</span> = saved;
+        alert(<span class="st">'Saved!'</span>);
+      });
+  }
+
+  <span class="cm">// ── Go back to list ───────────────────────────────</span>
+  <span class="hl hl-route" onclick="pick('s4-back')">goBack()</span>: <span class="ty">void</span> {
+    <span class="hl hl-route" onclick="pick('s4-back')">this.router.navigate([<span class="st">'/'</span>]);</span>
+  }
+
+  <span class="hl hl-rxjs" onclick="pick('s4-rxjs')">ngOnDestroy()</span>: <span class="ty">void</span> {
+    <span class="hl hl-rxjs" onclick="pick('s4-rxjs')">this.destroy$.next(); this.destroy$.complete();</span>
+  }
+}
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s4" id="s4-html-tab">
+<pre>
+<span class="cm">&lt;!-- Loading ────────────────────────────────────── --&gt;</span>
+&lt;div <span class="hl hl-tmpl" onclick="pick('s4-ngif')">*ngIf="isLoading"</span>&gt;⏳ Loading...&lt;/div&gt;
+
+<span class="cm">&lt;!-- Error ──────────────────────────────────────── --&gt;</span>
+&lt;div <span class="hl hl-tmpl" onclick="pick('s4-ngif')">*ngIf="errorMsg"</span> class="error"&gt;
+  ❌ <span class="hl hl-bind1" onclick="pick('s4-bind1')">{{ errorMsg }}</span>
+  &lt;button <span class="hl hl-event" onclick="pick('s4-back')">(click)="goBack()"</span>&gt;← Back&lt;/button&gt;
+&lt;/div&gt;
+
+<span class="cm">&lt;!-- Detail card ────────────────────────────────── --&gt;</span>
+&lt;div <span class="hl hl-tmpl" onclick="pick('s4-ngif')">*ngIf="todo &amp;&amp; !isLoading"</span> class="detail-card"&gt;
+
+  &lt;button <span class="hl hl-event" onclick="pick('s4-back')">(click)="goBack()"</span>&gt;← Back to List&lt;/button&gt;
+
+  &lt;h2&gt;Todo #<span class="hl hl-bind1" onclick="pick('s4-bind1')">{{ todo.id }}</span>&lt;/h2&gt;
+
+  <span class="cm">&lt;!-- Status badge ── one-way class binding ──────── --&gt;</span>
+  &lt;span
+    <span class="hl hl-bind1" onclick="pick('s4-bind1')">[class.complete]="todo.completed"</span>
+    <span class="hl hl-bind1" onclick="pick('s4-bind1')">[class.pending]="!todo.completed"</span>&gt;
+    <span class="hl hl-bind1" onclick="pick('s4-bind1')">{{ todo.completed ? '✅ Complete' : '⏳ Pending' }}</span>
+  &lt;/span&gt;
+
+  <span class="cm">&lt;!-- Edit title ── two-way binding ──────────────── --&gt;</span>
+  &lt;label&gt;Title&lt;/label&gt;
+  &lt;input
+    <span class="hl hl-bind2" onclick="pick('s4-bind2')">[(ngModel)]="editTitle"</span>
+    class="edit-input" /&gt;
+
+  <span class="cm">&lt;!-- Save button ── disabled until changed ────── --&gt;</span>
+  &lt;button
+    <span class="hl hl-event" onclick="pick('s4-save')">(click)="saveTodo()"</span>
+    <span class="hl hl-bind1" onclick="pick('s4-bind1')">[disabled]="editTitle === todo.title"</span>&gt;
+    💾 Save Changes
+  &lt;/button&gt;
+
+  <span class="cm">&lt;!-- Read-only fields ── interpolation ──────────── --&gt;</span>
+  &lt;p&gt;User ID: <span class="hl hl-bind1" onclick="pick('s4-bind1')">{{ todo.userId }}</span>&lt;/p&gt;
+&lt;/div&gt;
+</pre>
+      </div>
+
+      <div class="file-content" data-tabgroup="s4" id="s4-css-tab">
+<pre>
+<span class="cm">/* ── todo-detail.component.css ──────────────────── */</span>
+<span class="cm">/* View Encapsulation applies here too — these       */</span>
+<span class="cm">/* styles are scoped to this component only.        */</span>
+
+<span class="hl hl-comp" onclick="pick('s2-encap')">:host</span> {
+  display: block;
+  padding: 24px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+<span class="cm">/* ── Back button ─────────────────────────────── */</span>
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  border-color: #cbd5e1;
+  color: #334155;
+  background: #f8fafc;
+}
+
+<span class="cm">/* ── Detail card ─────────────────────────────── */</span>
+.detail-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+}
+
+.detail-card h2 {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+<span class="cm">/* ── Status badge ────────────────────────────── */</span>
+<span class="hl hl-bind1" onclick="pick('s4-bind1')">.complete</span> {     <span class="cm">/* added by [class.complete]="todo.completed" */</span>
+  display: inline-block;
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+<span class="hl hl-bind1" onclick="pick('s4-bind1')">.pending</span> {      <span class="cm">/* added by [class.pending]="!todo.completed" */</span>
+  display: inline-block;
+  background: #fef9c3;
+  color: #a16207;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+<span class="cm">/* ── Edit input ──────────────────────────────── */</span>
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #1e293b;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #61dafb;
+}
+
+<span class="cm">/* ── Save button ─────────────────────────────── */</span>
+.save-btn {
+  padding: 10px 24px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  margin-bottom: 24px;
+}
+
+.save-btn:hover    { background: #0284c7; }
+.save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+<span class="cm">/* ── Read-only meta ──────────────────────────── */</span>
+.detail-card p {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+<span class="cm">/* ── Loading/error states ────────────────────── */</span>
+.loading {
+  text-align: center;
+  padding: 60px 24px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  color: #dc2626;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+</pre>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-tmpl)"><div class="col-hdr-dot"></div>The Story</div>
+    <div class="story-hint">👆 Click any highlighted chunk.</div>
+    <div class="ccard" id="cc-s4-route" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🏷️</div><div><div class="ccard-title">ActivatedRoute</div><div class="ccard-sub">Read :id from the URL</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🏷️ <strong>The House Number</strong> — When you navigate to <code>/todos/5</code>, the router writes "5" on the door. <code>ActivatedRoute</code> lets this component read that number. <code>route.paramMap</code> is an Observable that emits the current params — so if the URL changes, the component reacts automatically.</div>
+        <div class="code-snip">// Option 1: snapshot (one-time read)
+const id = this.route.snapshot.paramMap.get('id');
+
+// Option 2: Observable (reacts to changes)
+this.route.paramMap.subscribe(params => {
+  const id = params.get('id');
+});</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-rxjs" style="color:var(--c-rxjs)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🔄</div><div><div class="ccard-title">switchMap</div><div class="ccard-sub">Cancel old, start new</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-rxjs)">🔄 <strong>Changing the TV Channel</strong> — If the user navigates from <code>/todos/5</code> to <code>/todos/10</code> very quickly, <code>switchMap</code> cancels the request for todo #5 and starts a new one for #10. Without it, you might get todo #5's data arriving late and overwriting #10's data.</div>
+        <div class="angular-def">switchMap flattens an Observable of Observables. On each new emission, it unsubscribes from the previous inner Observable and subscribes to the new one.</div>
+        <div class="code-snip">this.route.paramMap.pipe(
+  switchMap(params => {
+    const id = Number(params.get('id'));
+    return this.todoService.getById(id);
+    // If a new id arrives before this completes,
+    // this request is cancelled automatically!
+  })
+)</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-di" style="color:var(--c-di)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💉</div><div><div class="ccard-title">3 Services Injected</div><div class="ccard-sub">DI at work</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-di)">💉 <strong>Three Helpers</strong> — This component needs three things from the city directory: ActivatedRoute (to read the URL), Router (to navigate back), TodoService (to fetch/save data). Angular provides all three automatically through the constructor.</div>
+        <div class="code-snip">constructor(
+  private route:       ActivatedRoute,  // read URL
+  private router:      Router,           // navigate
+  private todoService: TodoService       // HTTP
+) {
+  // Angular creates and injects all three
+  // You never call new ActivatedRoute() etc.
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-fetch" style="color:var(--c-svc)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📥</div><div><div class="ccard-title">getById(id)</div><div class="ccard-sub">Fetch the specific todo</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-svc)">📥 <strong>One Item from the Shop</strong> — After reading the id from the URL, the component asks the service to fetch just that one todo. The service calls <code>GET /todos/5</code> and delivers it via an Observable. switchMap handles the subscription.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-save" style="color:var(--c-event)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💾</div><div><div class="ccard-title">saveTodo()</div><div class="ccard-sub">Save edits back to API</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-event)">💾 <strong>Updating the Order</strong> — When the user changes the title and clicks Save, <code>saveTodo()</code> takes the current todo, spreads it (copies all fields), overrides the title with <code>editTitle</code> (from the two-way bound input), and sends a PUT request to the API.</div>
+        <div class="code-snip">saveTodo(): void {
+  const updated = {
+    ...this.todo,         // copy all existing fields
+    title: this.editTitle // override title with edited value
+  };
+  this.todoService.update(updated).subscribe(saved => {
+    this.todo = saved; // update with server response
+  });
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-back" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">⬅️</div><div><div class="ccard-title">goBack() / router.navigate</div><div class="ccard-sub">Return to the list</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">⬅️ <strong>Taking the Taxi Home</strong> — <code>goBack()</code> calls <code>router.navigate(['/'])</code> to drive back to the list. Alternatively, you could use <code>location.back()</code> to go to the previous browser history entry.</div>
+        <div class="code-snip">goBack(): void {
+  this.router.navigate(['/']); // explicit route
+  // OR:
+  // this.location.back();     // browser back button equivalent
+}</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-bind2" style="color:var(--c-bind2)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📻</div><div><div class="ccard-title">[(ngModel)] on edit field</div><div class="ccard-sub">Two-way edit binding</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-bind2)">📻 <strong>The Edit Walkie-Talkie</strong> — The edit input is two-way bound to <code>editTitle</code>. When ngOnInit loads the todo, it copies <code>todo.title</code> into <code>editTitle</code> — this pre-fills the input. As the user types, <code>editTitle</code> updates. When they click Save, <code>editTitle</code> has the new value ready.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-ngif" style="color:var(--c-tmpl)">
+      <div class="ccard-hdr"><div class="ccard-emoji">💡</div><div><div class="ccard-title">3-state *ngIf pattern</div><div class="ccard-sub">loading / error / data</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-tmpl)">💡 <strong>Three Light Switches</strong> — There are always three possible states when loading data: 1) still loading (show spinner), 2) error occurred (show error message), 3) data arrived (show content). Three *ngIf switches, only one on at a time.</div>
+        <div class="code-snip">&lt;div *ngIf="isLoading"&gt;⏳ Loading...&lt;/div&gt;
+&lt;div *ngIf="errorMsg"&gt;❌ {{ errorMsg }}&lt;/div&gt;
+&lt;div *ngIf="todo &amp;&amp; !isLoading"&gt;
+  &lt;!-- actual content --&gt;
+&lt;/div&gt;</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s4-bind1" style="color:var(--c-bind1)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📺</div><div><div class="ccard-title">{{ }} One-way display</div><div class="ccard-sub">Read-only fields</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-bind1)">📺 Fields like <code>todo.id</code> and <code>todo.userId</code> are read-only — just display values. <code>{{ todo.id }}</code> outputs the number as text. <code>[class.complete]="todo.completed"</code> adds/removes a CSS class based on the boolean. These are one-way: class → template.</div>
+      </div>
+    </div>
+  </div></div>
+</div><!-- /scene 4 -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCENE 5 — ROUTING (full code)
+════════════════════════════════════════════════════════════════════ -->
+<div class="scene" id="scene-5">
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-route)"><div class="col-hdr-dot"></div>Road System Map</div>
+    <div class="scene-title">Routing</div>
+    <div class="scene-sub">The router maps URLs to components. No page reloads.</div>
+    <div class="city-map" style="height:490px">
+      <svg id="s5-svg"></svg>
+      <div class="cbox"          style="left:20%;top:1%;width:60%;height:48px;border-color:var(--dim);background:rgba(255,255,255,.02)" onclick="pick('s5-url')"><div class="cbox-icon">🌐</div><div class="cbox-lbl" style="color:var(--muted)">Browser URL bar</div></div>
+      <div class="cbox hl-route" style="left:20%;top:17%;width:60%;height:48px;border-color:var(--c-route)" onclick="pick('s5-routes')"><div class="cbox-icon">🗺️</div><div class="cbox-lbl">Routes[] config — path → component</div></div>
+      <div class="cbox hl-comp"  style="left:1%;top:34%;width:46%;height:48px;border-color:var(--c-comp)"   onclick="pick('s5-list')"><div class="cbox-icon">📋</div><div class="cbox-lbl">path: '' → TodoListComponent</div></div>
+      <div class="cbox hl-comp"  style="right:1%;top:34%;width:46%;height:48px;border-color:var(--c-comp)"  onclick="pick('s5-detail')"><div class="cbox-icon">🔍</div><div class="cbox-lbl">path: 'todos/:id' → TodoDetail</div></div>
+      <div class="cbox hl-route" style="left:15%;top:51%;width:70%;height:48px;border-color:var(--c-route)" onclick="pick('s5-outlet')"><div class="cbox-icon">🚪</div><div class="cbox-lbl">&lt;router-outlet&gt; — The Magic Door</div></div>
+      <div class="cbox hl-route" style="left:1%;top:68%;width:46%;height:48px;border-color:var(--c-route)"  onclick="pick('s5-link')"><div class="cbox-icon">🪧</div><div class="cbox-lbl">routerLink — HTML nav</div></div>
+      <div class="cbox hl-route" style="right:1%;top:68%;width:46%;height:48px;border-color:var(--c-route)"  onclick="pick('s5-navigate')"><div class="cbox-icon">🚗</div><div class="cbox-lbl">router.navigate() — TS nav</div></div>
+      <div class="cbox hl-route" style="left:5%;top:85%;width:90%;height:46px;border-color:var(--c-route);border-style:dashed" onclick="pick('s5-guard')"><div class="cbox-icon">🔒</div><div class="cbox-lbl" style="font-size:8px">Route Guards: canActivate — protect routes (e.g. auth)</div></div>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-route)"><div class="col-hdr-dot"></div>Full Routing Code</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div class="code-file-hdr"><div class="dot" style="background:var(--c-route)"></div>app-routing.module.ts</div>
+<pre>
+<span class="kw">import</span> { NgModule }             <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+<span class="kw">import</span> { <span class="hl hl-route" onclick="pick('s5-routes')">RouterModule, Routes</span> } <span class="kw">from</span> <span class="st">'@angular/router'</span>;
+<span class="kw">import</span> { <span class="hl hl-comp" onclick="pick('s5-list')">TodoListComponent</span> }    <span class="kw">from</span> <span class="st">'./todo-list/todo-list.component'</span>;
+<span class="kw">import</span> { <span class="hl hl-comp" onclick="pick('s5-detail')">TodoDetailComponent</span> } <span class="kw">from</span> <span class="st">'./todo-detail/todo-detail.component'</span>;
+
+<span class="kw">const</span> <span class="hl hl-route" onclick="pick('s5-routes')">routes: Routes</span> = [
+  <span class="cm">// Road 1: "/" → List Building</span>
+  {
+    path: <span class="st">''</span>,
+    <span class="hl hl-comp" onclick="pick('s5-list')">component: TodoListComponent</span>,
+    pathMatch: <span class="st">'full'</span>       <span class="cm">// must match exactly "/"</span>
+  },
+
+  <span class="cm">// Road 2: "/todos/5" → Detail Building</span>
+  {
+    path: <span class="hl hl-route" onclick="pick('s5-detail')">'todos/:id'</span>,        <span class="cm">// :id is a wildcard</span>
+    <span class="hl hl-comp" onclick="pick('s5-detail')">component: TodoDetailComponent</span>
+  },
+
+  <span class="cm">// Wildcard: any unknown path → redirect to "/"</span>
+  {
+    path: <span class="st">'**'</span>,
+    redirectTo: <span class="st">''</span>
+  }
+];
+
+@NgModule({
+  imports: [<span class="hl hl-route" onclick="pick('s5-routes')">RouterModule.forRoot(routes)</span>],
+  exports: [RouterModule]
+})
+<span class="kw">export class</span> <span class="ty">AppRoutingModule</span> {}
+</pre>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">
+      <div class="code-file-hdr"><div class="dot" style="background:var(--c-comp)"></div>app.component.html — the magic door</div>
+<pre>
+&lt;nav&gt;
+  <span class="cm">&lt;!-- routerLink: no page reload, SPA navigation --&gt;</span>
+  &lt;a <span class="hl hl-route" onclick="pick('s5-link')">routerLink="/"</span>
+     <span class="hl hl-route" onclick="pick('s5-link')">routerLinkActive="active"</span>
+     [routerLinkActiveOptions]="{exact:true}"&gt;
+    📋 All Todos
+  &lt;/a&gt;
+&lt;/nav&gt;
+
+<span class="cm">&lt;!-- Matched component renders here --&gt;</span>
+<span class="hl hl-route" onclick="pick('s5-outlet')">&lt;router-outlet&gt;&lt;/router-outlet&gt;</span>
+</pre>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div class="code-file-hdr"><div class="dot" style="background:var(--c-route)"></div>auth.guard.ts — protecting routes</div>
+<pre>
+<span class="kw">import</span> { inject }     <span class="kw">from</span> <span class="st">'@angular/core'</span>;
+<span class="kw">import</span> { CanActivateFn, Router } <span class="kw">from</span> <span class="st">'@angular/router'</span>;
+
+<span class="cm">// Modern functional guard (Angular 15+)</span>
+<span class="kw">export const</span> <span class="hl hl-route" onclick="pick('s5-guard')">authGuard: CanActivateFn</span> = () => {
+  <span class="kw">const</span> router = inject(Router);
+  <span class="kw">const</span> loggedIn = !!localStorage.getItem(<span class="st">'token'</span>);
+
+  <span class="kw">if</span> (loggedIn) <span class="kw">return true</span>;       <span class="cm">// ✅ allow</span>
+  router.navigate([<span class="st">'/login'</span>]);     <span class="cm">// ❌ redirect</span>
+  <span class="kw">return false</span>;
+};
+
+<span class="cm">// Use in routes:</span>
+{ path: <span class="st">'admin'</span>, component: AdminComponent,
+  <span class="hl hl-route" onclick="pick('s5-guard')">canActivate: [authGuard]</span> }
+</pre>
+    </div>
+  </div></div>
+
+  <div class="col"><div class="col-inner">
+    <div class="col-hdr" style="color:var(--c-tmpl)"><div class="col-hdr-dot"></div>The Story</div>
+    <div class="story-hint">👆 Click any highlighted chunk.</div>
+    <div class="ccard" id="cc-s5-url" style="color:#94a3b8">
+      <div class="ccard-hdr"><div class="ccard-emoji">🌐</div><div><div class="ccard-title">The URL Bar</div><div class="ccard-sub">The address the router reads</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-left-color:#94a3b8">🌐 The URL is the address of where you want to go in the city. Angular intercepts all URL changes (including browser back/forward) and handles them itself without a full page reload. The server only needs to serve index.html — Angular does the rest.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s5-routes" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🗺️</div><div><div class="ccard-title">Routes[] config</div><div class="ccard-sub">The city road map</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🗺️ <strong>The Road Map</strong> — The routes array is a list of mappings: "if someone tries to go to this address (path), show them this building (component)." Angular reads this array top-to-bottom and uses the first match it finds.</div>
+        <div class="angular-def">Routes is an array of Route objects. Each Route has at minimum a path and a component. RouterModule.forRoot() registers these at the app level.</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s5-list" style="color:var(--c-comp)">
+      <div class="ccard-hdr"><div class="ccard-emoji">📋</div><div><div class="ccard-title">path: '' → TodoListComponent</div><div class="ccard-sub">The home road</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-comp)">📋 <strong>Home Address</strong> — An empty path <code>''</code> matches the root URL <code>/</code>. <code>pathMatch: 'full'</code> means "only if the entire URL is empty" — otherwise it would match every URL that starts with nothing (i.e. all of them).</div>
+        <div class="code-snip">{ path: '', component: TodoListComponent, pathMatch: 'full' }
+// matches: /
+// doesn't match: /todos/5 or /about</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s5-detail" style="color:var(--c-comp)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🔍</div><div><div class="ccard-title">path: 'todos/:id'</div><div class="ccard-sub">The detail road with a wildcard</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-comp)">🔍 <strong>Wildcard Address</strong> — The <code>:id</code> is like a wildcard postcode. <code>/todos/1</code>, <code>/todos/99</code>, <code>/todos/456</code> — all match this route. The actual number after the colon gets stored as the <code>id</code> parameter, readable via <code>ActivatedRoute</code>.</div>
+        <div class="code-snip">{ path: 'todos/:id', component: TodoDetailComponent }
+// matches: /todos/1, /todos/99, /todos/abc
+// :id captures the value after /todos/</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s5-outlet" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🚪</div><div><div class="ccard-title">&lt;router-outlet&gt;</div><div class="ccard-sub">The magic door in AppComponent</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🚪 <strong>The Magic Door</strong> — AppComponent has a magic door: <code>&lt;router-outlet&gt;</code>. The router swaps what's behind the door depending on the URL. Navigate to <code>/</code> — TodoListComponent appears. Navigate to <code>/todos/5</code> — TodoDetailComponent appears. The nav bar stays the same.</div>
+        <div class="code-snip">&lt;!-- app.component.html --&gt;
+&lt;nav&gt;...always visible...&lt;/nav&gt;
+&lt;router-outlet&gt;&lt;/router-outlet&gt;
+&lt;!-- ↑ router swaps the component here --&gt;
+&lt;footer&gt;...always visible...&lt;/footer&gt;</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s5-link" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🪧</div><div><div class="ccard-title">routerLink</div><div class="ccard-sub">HTML navigation — no page reload</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🪧 <strong>The Road Sign</strong> — Use <code>routerLink</code> instead of <code>href</code> for internal navigation. <code>href</code> reloads the whole page. <code>routerLink</code> just tells Angular's router to swap the component — instant, no reload. <code>routerLinkActive</code> adds a CSS class when this route is active.</div>
+        <div class="code-snip">&lt;a routerLink="/"&gt;Home&lt;/a&gt;
+&lt;a [routerLink]="['/todos', todo.id]"&gt;View&lt;/a&gt;
+&lt;a routerLink="/about" routerLinkActive="active"&gt;About&lt;/a&gt;</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s5-navigate" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🚗</div><div><div class="ccard-title">router.navigate()</div><div class="ccard-sub">Programmatic navigation from TypeScript</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🚗 <strong>Calling a Taxi</strong> — When you need to navigate from TypeScript code (e.g., after saving a form, or after login), call <code>router.navigate()</code>. It does exactly what <code>routerLink</code> does but from the manager's office instead of the lobby.</div>
+        <div class="code-snip">// Go to /todos/5
+this.router.navigate(['/todos', 5]);
+
+// Go to / and replace browser history
+this.router.navigate(['/'], { replaceUrl: true });
+
+// Pass query params: /search?q=angular
+this.router.navigate(['/search'], { queryParams: { q: 'angular' } });</div>
+      </div>
+    </div>
+    <div class="ccard" id="cc-s5-guard" style="color:var(--c-route)">
+      <div class="ccard-hdr"><div class="ccard-emoji">🔒</div><div><div class="ccard-title">Route Guards (canActivate)</div><div class="ccard-sub">Protect routes from unauthorised access</div></div></div>
+      <div class="ccard-body">
+        <div class="grade5" style="border-color:var(--c-route)">🔒 <strong>The Bouncer</strong> — A route guard is a bouncer at the door of a building. Before the router lets you into <code>/admin</code>, it asks the guard: "is this person allowed in?" If yes, they're in. If no, the guard redirects them to <code>/login</code>.</div>
+        <div class="angular-def">Guards are functions (or classes) that return true/false/UrlTree. canActivate runs before a route is activated. Modern Angular uses functional guards with inject().</div>
+        <div class="code-snip">export const authGuard: CanActivateFn = () => {
+  const loggedIn = !!localStorage.getItem('token');
+  if (loggedIn) return true;
+  inject(Router).navigate(['/login']);
+  return false;
+};
+// In routes: { path: 'admin', canActivate: [authGuard] }</div>
+      </div>
+    </div>
+  </div></div>
+</div><!-- /scene 5 -->
+
+</div><!-- /#app -->
+
+<script>
+// ── SCENE MANAGEMENT ─────────────────────────────────────────────────────────
+let currentScene = 0;
+const TOTAL = 6;
+
+function goScene(n) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.snav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('scene-' + n).classList.add('active');
+  document.querySelectorAll('.snav-btn')[n].classList.add('active');
+  currentScene = n;
+  document.getElementById('btn-prev').disabled = n === 0;
+  document.getElementById('btn-next').disabled = n === TOTAL - 1;
+  closeAll();
+}
+function nextScene() { if (currentScene < TOTAL-1) goScene(currentScene+1); }
+function prevScene() { if (currentScene > 0)       goScene(currentScene-1); }
+
+// ── FILE TABS ─────────────────────────────────────────────────────────────────
+function switchTab(tabEl, contentId) {
+  const tabRow = tabEl.parentElement;
+  const group = tabRow.dataset.tabgroup;
+  tabRow.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  document.querySelectorAll('.file-content[data-tabgroup="' + group + '"]').forEach(c => c.classList.remove('active'));
+  document.getElementById(contentId).classList.add('active');
+}
+
+// ── CONCEPT CLICK ─────────────────────────────────────────────────────────────
+// Map key → card id
+const MAP = {
+  // scene 0
+  mod:'cc-mod', comp:'cc-comp', svc:'cc-svc', di:'cc-di',
+  rxjs:'cc-rxjs', route:'cc-route', api:'cc-api',
+  // scene 1
+  's1-decorator':'cc-s1-decorator','s1-decl':'cc-s1-decl',
+  's1-imports':'cc-s1-imports','s1-providers':'cc-s1-providers',
+  's1-bootstrap':'cc-s1-bootstrap','s1-standalone':'cc-s1-standalone',
+  // scene 2
+  's2-decorator':'cc-s2-decorator','s2-di':'cc-s2-di','s2-ngoninit':'cc-s2-ngoninit',
+  's2-addtodo':'cc-s2-addtodo','s2-delete':'cc-s2-delete','s2-bind2':'cc-s2-bind2',
+  's2-bind1':'cc-s2-bind1','s2-ngfor':'cc-s2-ngfor','s2-ngif':'cc-s2-ngif',
+  's2-html':'cc-s2-bind1','s2-navigate':'cc-s2-navigate','s2-encap':'cc-s2-encap',
+  // scene 3
+  's3-injectable':'cc-s3-injectable','s3-httpclient':'cc-s3-httpclient',
+  's3-getall':'cc-s3-getall','s3-getbyid':'cc-s3-getbyid',
+  's3-add':'cc-s3-add','s3-delete':'cc-s3-delete',
+  's3-pipe':'cc-s3-pipe','s3-api':'cc-s3-api',
+  // scene 4
+  's4-route':'cc-s4-route','s4-rxjs':'cc-s4-rxjs','s4-di':'cc-s4-di',
+  's4-fetch':'cc-s4-fetch','s4-save':'cc-s4-save','s4-back':'cc-s4-back',
+  's4-bind2':'cc-s4-bind2','s4-ngif':'cc-s4-ngif','s4-bind1':'cc-s4-bind1',
+  // scene 5
+  's5-url':'cc-s5-url','s5-routes':'cc-s5-routes',
+  's5-list':'cc-s5-list','s5-detail':'cc-s5-detail',
+  's5-outlet':'cc-s5-outlet','s5-link':'cc-s5-link',
+  's5-navigate':'cc-s5-navigate','s5-guard':'cc-s5-guard',
+};
+
+let openKey = null;
+
+function closeAll() {
+  document.querySelectorAll('.ccard.open').forEach(c => c.classList.remove('open'));
+  document.querySelectorAll('.hl.lit').forEach(c => c.classList.remove('lit'));
+  document.querySelectorAll('.cbox.lit').forEach(c => c.classList.remove('lit'));
+  document.querySelectorAll('.leg.lit').forEach(c => c.classList.remove('lit'));
+  openKey = null;
+}
+
+function pick(key) {
+  const cardId = MAP[key];
+  if (!cardId) return;
+  // toggle off if same card already open
+  if (openKey === key) { closeAll(); return; }
+  closeAll();
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.classList.add('open');
+  openKey = key;
+  // highlight all .hl spans with this key
+  document.querySelectorAll(`.hl[onclick*="'${key}'"]`).forEach(el => el.classList.add('lit'));
+  // highlight legend items
+  document.querySelectorAll(`.leg[data-k="${key}"]`).forEach(el => el.classList.add('lit'));
+  // smooth scroll card into view in the story panel
+  setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
+}
+
+// Click on empty area closes everything
+document.getElementById('app').addEventListener('click', e => {
+  if (!e.target.closest('.cbox') && !e.target.closest('.hl') &&
+      !e.target.closest('.ccard') && !e.target.closest('.leg') &&
+      !e.target.closest('.ftab')) {
+    closeAll();
+  }
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') nextScene();
+  if (e.key === 'ArrowLeft')  prevScene();
+  if (e.key === 'Escape')     closeAll();
+});
+
+goScene(0);
+</script>
+</body>
+</html>
