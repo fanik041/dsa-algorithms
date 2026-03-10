@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karat × TCS Interview Prep v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0d0d0d;
+    --paper: #f5f0e8;
+    --accent: #c84b2f;
+    --gold: #d4a853;
+    --muted: #7a7060;
+    --card: #ede8df;
+    --border: #c8bfaa;
+    --green: #2a6b3c;
+    --blue: #1e4a7a;
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+  header {
+    background: var(--ink); color: var(--paper);
+    padding: 2.5rem 2rem 2rem; position: relative; overflow: hidden;
+  }
+  header::before { content:''; position:absolute; top:-40px; right:-40px; width:220px; height:220px; border:2px solid rgba(212,168,83,0.3); border-radius:50%; }
+  header::after { content:''; position:absolute; bottom:-60px; right:60px; width:140px; height:140px; border:2px solid rgba(200,75,47,0.3); border-radius:50%; }
+
+  .header-tag { font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.15em; color:var(--gold); text-transform:uppercase; margin-bottom:0.75rem; }
+  header h1 { font-family:'Fraunces',serif; font-size:clamp(1.8rem,5vw,2.8rem); font-weight:700; line-height:1.1; margin-bottom:0.5rem; }
+  header h1 span { color:var(--accent); }
+  .header-sub { color:rgba(245,240,232,0.6); font-size:0.9rem; font-weight:300; }
+
+  .badge-row { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:1rem; }
+  .badge { display:inline-flex; align-items:center; gap:0.4rem; font-family:'DM Mono',monospace; font-size:0.72rem; padding:0.3rem 0.75rem; border-radius:2px; letter-spacing:0.05em; }
+  .badge-red { background:var(--accent); color:white; }
+  .badge-gold { background:var(--gold); color:var(--ink); }
+  .badge-outline { border:1px solid rgba(245,240,232,0.3); color:rgba(245,240,232,0.7); }
+
+  .alert-banner {
+    background: #fff8e1; border-left: 4px solid var(--gold);
+    padding: 1rem 1.25rem; margin: 1.5rem 1.5rem 0;
+    border-radius: 0 3px 3px 0; font-size: 0.87rem; line-height: 1.6;
+    max-width: 780px; margin-left: auto; margin-right: auto;
+  }
+  .alert-banner strong { color: var(--ink); }
+
+  .main { padding: 1.25rem 1.5rem 3rem; max-width: 780px; margin: 0 auto; }
+
+  .section-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-bottom:1rem; padding-bottom:0.4rem; border-bottom:1px solid var(--border); }
+
+  /* Timeline */
+  .timeline { display:flex; gap:0; border-radius:4px; overflow:hidden; border:1px solid var(--border); margin-bottom:2rem; }
+  .tl-block { display:flex; flex-direction:column; padding:0.85rem 0.75rem; }
+  .tl-block:not(:last-child) { border-right:1px solid var(--border); }
+  .tl-block.domain { background:#e8f4ec; flex:2.5; }
+  .tl-block.coding { background:#e8eef8; flex:5; }
+  .tl-block.redo { background:#fdf3e7; flex:2; }
+  .tl-label { font-family:'DM Mono',monospace; font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase; opacity:0.6; margin-bottom:0.2rem; }
+  .tl-time { font-family:'Fraunces',serif; font-size:1.1rem; font-weight:700; }
+  .tl-desc { font-size:0.68rem; color:var(--muted); margin-top:0.2rem; line-height:1.3; }
+
+  /* Accordion */
+  .accordion { margin:0.5rem 0; }
+  .acc-header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.1rem; background:var(--card); border:1px solid var(--border); border-radius:3px; cursor:pointer; transition:background 0.15s; user-select:none; }
+  .acc-header:hover { background:#e5dfd4; }
+  .acc-header-left { display:flex; align-items:center; gap:0.75rem; }
+  .acc-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.85rem; flex-shrink:0; }
+  .acc-title { font-weight:500; font-size:0.95rem; }
+  .acc-sub { font-size:0.75rem; color:var(--muted); margin-top:0.1rem; }
+  .acc-priority { font-family:'DM Mono',monospace; font-size:0.6rem; padding:0.15rem 0.5rem; border-radius:2px; text-transform:uppercase; letter-spacing:0.08em; }
+  .priority-high { background:#fce8e4; color:var(--accent); }
+  .priority-medium { background:#fdf3e7; color:#a06020; }
+  .priority-low { background:#e8f4ec; color:var(--green); }
+  .acc-chevron { font-size:0.75rem; color:var(--muted); transition:transform 0.2s; }
+  .acc-header.open .acc-chevron { transform:rotate(180deg); }
+  .acc-body { display:none; border:1px solid var(--border); border-top:none; border-radius:0 0 3px 3px; background:white; padding:1.25rem; }
+  .acc-body.open { display:block; }
+
+  pre { font-family:'DM Mono',monospace; font-size:0.75rem; background:#1a1a2e; color:#e8e8f5; padding:1rem; border-radius:3px; overflow-x:auto; line-height:1.6; margin:0.75rem 0; }
+  .kw { color:#c084fc; } .fn { color:#67e8f9; } .cm { color:#6b7280; font-style:italic; } .str { color:#86efac; } .num { color:#fbbf24; }
+
+  .tip-box { background:#fffbf0; border-left:3px solid var(--gold); padding:0.75rem 1rem; margin:0.75rem 0; font-size:0.85rem; line-height:1.5; }
+  .warn-box { background:#fff5f5; border-left:3px solid var(--accent); padding:0.75rem 1rem; margin:0.75rem 0; font-size:0.85rem; line-height:1.5; }
+  .green-box { background:#f0faf4; border-left:3px solid var(--green); padding:0.75rem 1rem; margin:0.75rem 0; font-size:0.85rem; line-height:1.5; }
+  .blue-box { background:#eff6ff; border-left:3px solid var(--blue); padding:0.75rem 1rem; margin:0.75rem 0; font-size:0.85rem; line-height:1.5; }
+
+  ul.checklist { list-style:none; padding:0; }
+  ul.checklist li { padding:0.4rem 0; font-size:0.87rem; display:flex; align-items:flex-start; gap:0.5rem; line-height:1.4; border-bottom:1px solid #f0ece4; }
+  ul.checklist li:last-child { border-bottom:none; }
+  ul.checklist li::before { content:'→'; color:var(--accent); flex-shrink:0; margin-top:0.05rem; }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin:0.75rem 0; }
+  @media (max-width:500px) { .two-col { grid-template-columns:1fr; } }
+  .mini-card { background:var(--card); border:1px solid var(--border); border-radius:3px; padding:0.75rem; font-size:0.82rem; }
+  .mini-card strong { display:block; margin-bottom:0.3rem; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); }
+
+  .problem-card { border:1px solid var(--border); border-radius:4px; margin:0.75rem 0; overflow:hidden; }
+  .problem-header { background:var(--card); padding:0.6rem 1rem; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:0.5rem; }
+  .problem-body { padding:0.85rem 1rem; font-size:0.84rem; line-height:1.6; }
+
+  .step-list { counter-reset:step; list-style:none; padding:0; }
+  .step-list li { counter-increment:step; padding:0.5rem 0 0.5rem 2.25rem; font-size:0.87rem; line-height:1.5; border-bottom:1px solid #f0ece4; position:relative; }
+  .step-list li:last-child { border-bottom:none; }
+  .step-list li::before { content:counter(step); position:absolute; left:0; top:0.5rem; width:1.5rem; height:1.5rem; background:var(--ink); color:var(--paper); border-radius:50%; font-family:'DM Mono',monospace; font-size:0.65rem; display:flex; align-items:center; justify-content:center; font-weight:500; }
+
+  .night-before { background:var(--ink); color:var(--paper); border-radius:4px; padding:1.5rem; margin:2rem 0; }
+  .night-before h3 { font-family:'Fraunces',serif; font-size:1.2rem; margin-bottom:1rem; color:var(--gold); }
+  .night-before ul { list-style:none; }
+  .night-before ul li { display:flex; gap:0.6rem; padding:0.35rem 0; font-size:0.85rem; color:rgba(245,240,232,0.8); cursor:pointer; align-items:flex-start; }
+  .night-before ul li .cb { width:14px; height:14px; border:1px solid var(--gold); border-radius:2px; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; transition:background 0.15s; }
+  .night-before ul li.checked .cb { background:var(--gold); }
+  .night-before ul li.checked span { text-decoration:line-through; opacity:0.5; }
+
+  .tag-row { display:flex; flex-wrap:wrap; gap:0.4rem; margin:0.5rem 0; }
+  .tag { font-family:'DM Mono',monospace; font-size:0.65rem; padding:0.2rem 0.55rem; border-radius:2px; letter-spacing:0.05em; text-transform:uppercase; }
+  .tag-blue { background:#dbeafe; color:var(--blue); } .tag-green { background:#d1fae5; color:var(--green); } .tag-red { background:#fee2e2; color:#991b1b; } .tag-yellow { background:#fef3c7; color:#92400e; }
+
+  p { line-height:1.6; font-size:0.88rem; margin-bottom:0.5rem; }
+  h4 { font-size:0.88rem; font-weight:600; margin:0.75rem 0 0.3rem; }
+  code { font-family:'DM Mono',monospace; font-size:0.8em; background:#f0ece4; padding:0.1em 0.35em; border-radius:2px; }
+
+  .divider { border:none; border-top:1px solid var(--border); margin:1.5rem 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Updated from InterviewDB + Glassdoor · Full Stack Developer</div>
+  <h1>Karat × <span>TCS</span><br>Crunch Sheet <span style="font-size:1.2rem;font-style:italic;font-weight:300">v2</span></h1>
+  <div class="header-sub">Corrected structure — no behavioral round, redo available</div>
+  <div class="badge-row">
+    <span class="badge badge-red">⏱ 60 min live coding</span>
+    <span class="badge badge-gold">✦ Redo available</span>
+    <span class="badge badge-outline">No behavioral questions</span>
+  </div>
+</header>
+
+<div class="alert-banner" style="margin-top:1.5rem">
+  <strong>⚡ Key correction from your new research:</strong> Karat interviews have <strong>no behavioral questions</strong> — the full 60 minutes is purely technical (Domain Knowledge + Live Coding). Also: you get a <strong>free redo</strong> if things go sideways. Schedule attempt #1 ASAP so you have a buffer.
+</div>
+
+<div class="main">
+
+  <div class="timeline-section" style="margin:1.5rem 0 0.5rem">
+    <div class="section-label">Actual 60-minute structure</div>
+    <div class="timeline">
+      <div class="tl-block domain">
+        <div class="tl-label">Domain Knowledge</div>
+        <div class="tl-time">~15 min</div>
+        <div class="tl-desc">System design trade-off questions. Keep answers short — rush to coding.</div>
+      </div>
+      <div class="tl-block coding">
+        <div class="tl-label">Live Coding</div>
+        <div class="tl-time">~45 min</div>
+        <div class="tl-desc">1–2 problems, each with a progressive Part 2. Must complete ≥2 parts to pass.</div>
+      </div>
+      <div class="tl-block redo">
+        <div class="tl-label">Redo Option</div>
+        <div class="tl-time">Safety net</div>
+        <div class="tl-desc">Schedule attempt #1 early — gives you a free second shot if needed.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:2rem">Section 1 — Domain Knowledge (spend ≤ 15 min)</div>
+
+  <div class="accordion">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-header-left">
+        <div class="acc-icon" style="background:#e8f4ec">🏗️</div>
+        <div>
+          <div class="acc-title">System Design Trade-off Questions</div>
+          <div class="acc-sub">Real questions from Glassdoor reports</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <span class="acc-priority priority-medium">Medium — be concise</span>
+        <span class="acc-chevron">▼</span>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="tip-box">
+        <strong>Strategy:</strong> These are open-ended — they want you to reason about trade-offs, not recite a textbook. Spend 60–90 seconds max per answer. If you don't know, say so immediately and move on. <strong>Coding matters far more.</strong>
+      </div>
+
+      <div class="problem-card">
+        <div class="problem-header">📱 Reduce server farm costs for a mobile app</div>
+        <div class="problem-body">
+          "Use CDN caching for static assets and pre-rendered content. Move heavy animation rendering to the client where possible. Use auto-scaling to spin down idle servers, and consider serverless functions for bursty workloads. Compress assets aggressively and use lazy loading."
+        </div>
+      </div>
+
+      <div class="problem-card">
+        <div class="problem-header">⚡ Reduce impact of unreliable third-party APIs</div>
+        <div class="problem-body">
+          "Circuit breaker pattern — after N failures, stop calling the API and serve cached/stale data. Add a fallback response. Implement retries with exponential backoff for transient failures. Cache recent responses in Redis so an outage doesn't surface to the user."
+        </div>
+      </div>
+
+      <div class="problem-card">
+        <div class="problem-header">💰 Estimate resource costs for a video-sharing app</div>
+        <div class="problem-body">
+          "Need: current DAU/MAU, average video size and watch duration, upload vs view ratio, storage growth rate, bandwidth per stream, CDN costs per GB, current server utilization, and projected user growth %. Then model: storage cost = current GB × growth rate. Bandwidth = DAU × avg watch time × bitrate."
+        </div>
+      </div>
+
+      <div class="problem-card">
+        <div class="problem-header">🎵 Single server vs. multiple servers for music streaming</div>
+        <div class="problem-body">
+          "Single server: simpler ops, lower cost, but single point of failure and limited scalability. Multiple servers: high availability, horizontal scaling, geographic distribution for latency — but adds complexity (load balancing, distributed state, cache consistency). For streaming audio, latency and uptime are critical, so I'd lean multiple servers with a CDN."
+        </div>
+      </div>
+
+      <div class="problem-card">
+        <div class="problem-header">💳 Payment system concerns at scale (125k machines)</div>
+        <div class="problem-body">
+          "Key concerns: network reliability (machines may be offline → need local transaction queuing), idempotency (prevent double charges on retry), PCI-DSS compliance for card data, fraud detection, real-time balance sync vs. eventual consistency trade-off, and rollback/refund handling."
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <h4>General frameworks to keep handy</h4>
+      <div class="two-col">
+        <div class="mini-card">
+          <strong>REST vs GraphQL</strong>
+          REST: simple, cacheable, widely understood. GraphQL: flexible queries, reduces over-fetching, good for complex frontends. Use REST for simple CRUD, GraphQL when clients need varied data shapes.
+        </div>
+        <div class="mini-card">
+          <strong>Cookies vs localStorage</strong>
+          Cookies: sent with every request, server-readable, have expiry + HttpOnly flag (safer). localStorage: client-only, larger, persists across sessions. Use cookies for auth tokens, localStorage for UI preferences.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:1.75rem">Section 2 — Live Coding (your 45 minutes, win or lose here)</div>
+
+  <div class="warn-box" style="margin-bottom:1rem">
+    ⚠️ <strong>The bar:</strong> You must solve at least <strong>2 parts/problems</strong> completely to pass. Working &gt; optimal. Talk constantly. Silence is the #1 failure mode.
+  </div>
+
+  <div class="accordion">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-header-left">
+        <div class="acc-icon" style="background:#e8eef8">🔢</div>
+        <div>
+          <div class="acc-title">Pattern 1 — 2D Grid Problems (Part 1 + Part 2)</div>
+          <div class="acc-sub">Exact problem type confirmed from Glassdoor</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <span class="acc-priority priority-high">High Priority</span>
+        <span class="acc-chevron">▼</span>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="green-box">
+        <strong>Confirmed real questions:</strong><br>
+        Part 1: Grid of '0' (passable) and '+' (impassable). Return row and column indices that are completely passable.<br>
+        Part 2: Given a starting corner cell, BFS to find the nearest passable corner cell. Return its coordinates or -1.
+      </div>
+
+      <h4>Part 1 — Find fully passable rows and columns</h4>
+<pre><span class="kw">def</span> <span class="fn">passable_rows_cols</span>(grid):
+    rows, cols = len(grid), len(grid[<span class="num">0</span>])
+
+    passable_rows = [
+        r <span class="kw">for</span> r <span class="kw">in</span> range(rows)
+        <span class="kw">if</span> all(grid[r][c] == <span class="str">'0'</span> <span class="kw">for</span> c <span class="kw">in</span> range(cols))
+    ]
+    passable_cols = [
+        c <span class="kw">for</span> c <span class="kw">in</span> range(cols)
+        <span class="kw">if</span> all(grid[r][c] == <span class="str">'0'</span> <span class="kw">for</span> r <span class="kw">in</span> range(rows))
+    ]
+    <span class="kw">return</span> passable_rows, passable_cols
+
+<span class="cm"># Example</span>
+grid = [
+  [<span class="str">'0'</span>, <span class="str">'0'</span>, <span class="str">'+'</span>],
+  [<span class="str">'0'</span>, <span class="str">'0'</span>, <span class="str">'0'</span>],
+  [<span class="str">'+'</span>, <span class="str">'0'</span>, <span class="str">'+'</span>],
+]
+<span class="cm"># passable_rows=[1], passable_cols=[1]</span></pre>
+
+      <h4>Part 2 — BFS from corner to nearest passable corner</h4>
+<pre><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+<span class="kw">def</span> <span class="fn">nearest_passable_corner</span>(grid, start):
+    rows, cols = len(grid), len(grid[<span class="num">0</span>])
+    corners = {(<span class="num">0</span>,<span class="num">0</span>), (<span class="num">0</span>,cols<span class="num">-1</span>), (rows<span class="num">-1</span>,<span class="num">0</span>), (rows<span class="num">-1</span>,cols<span class="num">-1</span>)}
+    corners.discard(start)  <span class="cm"># remove start from targets</span>
+
+    <span class="kw">if</span> grid[start[<span class="num">0</span>]][start[<span class="num">1</span>]] == <span class="str">'+'</span>:
+        <span class="kw">return</span> <span class="num">-1</span>
+
+    visited = {start}
+    queue = deque([(start, <span class="num">0</span>)])  <span class="cm"># (position, distance)</span>
+
+    <span class="kw">while</span> queue:
+        (r, c), dist = queue.popleft()
+
+        <span class="kw">if</span> (r, c) <span class="kw">in</span> corners:
+            <span class="kw">return</span> (r, c)  <span class="cm"># BFS guarantees shortest path</span>
+
+        <span class="kw">for</span> dr, dc <span class="kw">in</span> [(<span class="num">-1</span>,<span class="num">0</span>),(<span class="num">1</span>,<span class="num">0</span>),(<span class="num">0</span>,<span class="num">-1</span>),(<span class="num">0</span>,<span class="num">1</span>)]:
+            nr, nc = r+dr, c+dc
+            <span class="kw">if</span> (<span class="num">0</span> &lt;= nr &lt; rows <span class="kw">and</span> <span class="num">0</span> &lt;= nc &lt; cols
+                    <span class="kw">and</span> (nr,nc) <span class="kw">not in</span> visited
+                    <span class="kw">and</span> grid[nr][nc] == <span class="str">'0'</span>):
+                visited.add((nr,nc))
+                queue.append(((nr,nc), dist+<span class="num">1</span>))
+
+    <span class="kw">return</span> <span class="num">-1</span>  <span class="cm"># no passable corner reachable</span></pre>
+      <div class="tip-box"><strong>Talk through:</strong> "I'm using BFS because it finds shortest path on unweighted grids. The corners are (0,0), (0,cols-1), (rows-1,0), (rows-1,cols-1). I'll skip the start corner. First corner I hit in BFS order is the nearest."</div>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-header-left">
+        <div class="acc-icon" style="background:#fdf3e7">🎲</div>
+        <div>
+          <div class="acc-title">Pattern 2 — Board Game / 1D Array + Teleporters</div>
+          <div class="acc-sub">Second confirmed problem type from Glassdoor</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <span class="acc-priority priority-high">High Priority</span>
+        <span class="acc-chevron">▼</span>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="green-box">
+        <strong>Confirmed real questions:</strong><br>
+        Part 1: 1D board, single die roll, list of teleporters (src→dst). Return all distinct positions reachable from start after one roll.<br>
+        Part 2: Roll die as many times as you want. Can you reach the last square from start? (Reachability via BFS/DFS.)
+      </div>
+
+      <h4>Part 1 — Positions reachable after one die roll</h4>
+<pre><span class="kw">def</span> <span class="fn">reachable_positions</span>(board_size, start, die_sides, teleporters):
+    <span class="cm"># teleporters: dict {from: to}</span>
+    positions = set()
+
+    <span class="kw">for</span> roll <span class="kw">in</span> range(<span class="num">1</span>, die_sides + <span class="num">1</span>):
+        pos = start + roll
+        <span class="kw">if</span> pos >= board_size:
+            <span class="kw">continue</span>  <span class="cm"># can't go past the board</span>
+        <span class="cm"># apply teleporter if one exists</span>
+        pos = teleporters.get(pos, pos)
+        positions.add(pos)
+
+    <span class="kw">return</span> sorted(positions)
+
+<span class="cm"># Example: board=10, start=0, die=6, teleporters={3:8}</span>
+<span class="cm"># Rolls 1-6 → positions 1,2,8(from 3),4,5,6</span></pre>
+
+      <h4>Part 2 — Can we reach the last square? (BFS reachability)</h4>
+<pre><span class="kw">from</span> collections <span class="kw">import</span> deque
+
+<span class="kw">def</span> <span class="fn">can_reach_end</span>(board_size, start, die_sides, teleporters):
+    end = board_size - <span class="num">1</span>
+    visited = {start}
+    queue = deque([start])
+
+    <span class="kw">while</span> queue:
+        pos = queue.popleft()
+        <span class="kw">if</span> pos == end:
+            <span class="kw">return</span> <span class="kw">True</span>
+
+        <span class="kw">for</span> roll <span class="kw">in</span> range(<span class="num">1</span>, die_sides + <span class="num">1</span>):
+            nxt = pos + roll
+            <span class="kw">if</span> nxt >= board_size:
+                <span class="kw">continue</span>
+            nxt = teleporters.get(nxt, nxt)  <span class="cm"># apply teleporter</span>
+            <span class="kw">if</span> nxt <span class="kw">not in</span> visited:
+                visited.add(nxt)
+                queue.append(nxt)
+
+    <span class="kw">return</span> <span class="kw">False</span></pre>
+      <div class="tip-box"><strong>Key insight to say aloud:</strong> "Part 2 is a graph reachability problem — each square is a node, a die roll is an edge. BFS or DFS both work. I'll use BFS. Teleporters are just redirect edges."</div>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-header-left">
+        <div class="acc-icon" style="background:#f0faf4">💬</div>
+        <div>
+          <div class="acc-title">How to Communicate During Live Coding</div>
+          <div class="acc-sub">The #1 pass/fail differentiator</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <span class="acc-priority priority-high">Critical</span>
+        <span class="acc-chevron">▼</span>
+      </div>
+    </div>
+    <div class="acc-body">
+      <ol class="step-list">
+        <li><strong>Restate the problem.</strong> "So if I understand correctly, I have a grid of '0' and '+', and I need to..." — this catches misunderstandings early.</li>
+        <li><strong>Clarify edge cases before coding.</strong> "Can the grid be empty? Can start be a '+' cell? Is the board 0-indexed?"</li>
+        <li><strong>State your approach.</strong> "I'm going to use BFS because it gives shortest path on unweighted graphs. I'll keep a visited set to avoid cycles."</li>
+        <li><strong>State complexity upfront.</strong> "This will be O(rows × cols) time and space."</li>
+        <li><strong>Narrate while coding.</strong> "I'm defining the four directions here... now I'm checking bounds before adding to the queue..."</li>
+        <li><strong>Test out loud.</strong> Trace through a tiny example manually: "Row 0: all '0', so it passes. Row 1 has a '+', so it fails..."</li>
+        <li><strong>Discuss trade-offs if time.</strong> "An alternative is DFS — same complexity, but BFS gives shortest path which we need here."</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="accordion">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-header-left">
+        <div class="acc-icon" style="background:#fce8e8">🗄️</div>
+        <div>
+          <div class="acc-title">Domain Knowledge Quick Refs (OOP + SQL + APIs)</div>
+          <div class="acc-sub">For the 15-min domain section</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <span class="acc-priority priority-medium">Medium Priority</span>
+        <span class="acc-chevron">▼</span>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="two-col">
+        <div class="mini-card">
+          <strong>Abstract Class vs Interface</strong>
+          Abstract: has state + partial impl, single inheritance, "is-a". Interface: pure contract, no state, multiple allowed, "can-do". Use abstract when sharing code; interface when sharing behaviour across unrelated classes.
+        </div>
+        <div class="mini-card">
+          <strong>Polymorphism (1-liner)</strong>
+          "Same method call, different behaviour per object — e.g. <code>shape.draw()</code> works on Circle, Square, Triangle without the caller knowing the type."
+        </div>
+        <div class="mini-card">
+          <strong>SQL Optimization</strong>
+          Index WHERE/JOIN cols. Avoid SELECT *. Use EXPLAIN. Fix N+1 with JOINs or eager load. Paginate large results with LIMIT/OFFSET.
+        </div>
+        <div class="mini-card">
+          <strong>CI/CD 4 Stages</strong>
+          Source → Build → Test → Deploy. (Bonus: add Staging env between Test and Prod for safety.)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Night Before -->
+  <div class="night-before">
+    <h3>✓ Tonight's Checklist</h3>
+    <ul>
+      <li onclick="this.classList.toggle('checked')">
+        <div class="cb">✓</div>
+        <span>Code Part 1 of the grid problem from scratch (passable rows/cols)</span>
+      </li>
+      <li onclick="this.classList.toggle('checked')">
+        <div class="cb">✓</div>
+        <span>Code Part 2 of the grid problem (BFS corner-to-corner)</span>
+      </li>
+      <li onclick="this.classList.toggle('checked')">
+        <div class="cb">✓</div>
+        <span>Code the board game Part 1 (single roll + teleporters)</span>
+      </li>
+      <li onclick="this.classList.toggle('checked')">
+        <div class="cb">✓</div>
+        <span>Code the board game Part 2 (BFS reachability to end)</span>
+      </li>
+      <li onclick="this.classList.toggle('checked')">
+        <div class="cb">✓</div>
+        <span>Practice 1 system design answer out loud (circuit breaker / CDN caching)</span>
+      </li>
+      <li onclick="this.classList.toggle('checked')">
+        <div class="cb">✓</div>
+        <span>Schedule attempt #1 for earliest available slot (to save redo if needed)</span>
+      </li>
+      <li onclick="this.classList.toggle('checked')">
+        <div class="cb">✓</div>
+        <span>Sleep 7+ hours — more valuable than another hour of prep</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="blue-box">
+    <strong>🎯 The real priority order:</strong> Coding (45 min, must solve ≥2 parts) &gt;&gt; Domain knowledge (15 min, 60s answers, move fast) &gt;&gt; Everything else. You do not need to be optimal. You need to be <em>working and talking</em>.
+  </div>
+
+</div>
+
+<script>
+  function toggle(header) {
+    header.classList.toggle('open');
+    header.nextElementSibling.classList.toggle('open');
+  }
+</script>
+</body>
+</html>

@@ -18,3 +18,27 @@ class TwoSum {
     }
     
 }
+
+
+/*
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Hashmap<Integer, Integer> map = new Hashmap<>(); b
+        int left = 0;
+        int right = nums.length -1;
+
+        while (left <= right) {
+            int twoSum = nums[left] + nums[right];
+            if (twoSum == target) {
+                return new int[]{left, right};
+            }
+            else if (twoSum <= target) {
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return new int[]{-1, -1};
+    }
+}
+*/
