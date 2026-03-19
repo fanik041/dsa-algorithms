@@ -1,0 +1,268 @@
+
+<style>
+  body-wrap { padding: 0; }
+  .qwrap { padding: 12px 0 20px; }
+  .search-bar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }
+  .search-bar input { flex: 1; padding: 8px 12px; border: 1px solid var(--color-border-secondary); border-radius: 8px; font-size: 13px; background: var(--color-background-secondary); color: var(--color-text-primary); outline: none; }
+  .search-bar input:focus { border-color: var(--color-border-primary); }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid var(--color-border-secondary); color: var(--color-text-secondary); background: var(--color-background-secondary); transition: all 0.15s; user-select: none; }
+  .pill.active { background: var(--color-text-primary); color: var(--color-background-primary); border-color: var(--color-text-primary); }
+  .pill.diff-easy.active { background: #0F6E56; border-color: #0F6E56; color: #E1F5EE; }
+  .pill.diff-med.active { background: #854F0B; border-color: #854F0B; color: #FAEEDA; }
+  .pill.diff.active { background: #A32D2D; border-color: #A32D2D; color: #FCEBEB; }
+  .section { margin-bottom: 10px; border: 1px solid var(--color-border-tertiary); border-radius: 12px; overflow: hidden; }
+  .sec-header { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; background: var(--color-background-secondary); user-select: none; }
+  .sec-header:hover { background: var(--color-background-tertiary); }
+  .sec-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+  .sec-count { font-size: 11px; color: var(--color-text-tertiary); }
+  .sec-chev { font-size: 11px; color: var(--color-text-tertiary); transition: transform 0.2s; }
+  .sec-chev.open { transform: rotate(180deg); }
+  .sec-body { display: none; }
+  .sec-body.open { display: block; }
+  .q-item { padding: 10px 14px; border-top: 1px solid var(--color-border-tertiary); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; transition: background 0.1s; }
+  .q-item:hover { background: var(--color-background-secondary); }
+  .q-num { font-size: 11px; color: var(--color-text-tertiary); min-width: 26px; padding-top: 1px; }
+  .q-text { font-size: 13px; color: var(--color-text-primary); flex: 1; line-height: 1.5; }
+  .q-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; margin-top: 2px; font-weight: 500; }
+  .badge-e { background: #E1F5EE; color: #0F6E56; }
+  .badge-m { background: #FAEEDA; color: #854F0B; }
+  .badge-h { background: #FCEBEB; color: #A32D2D; }
+  .answer-panel { padding: 10px 14px 14px 50px; background: var(--color-background-tertiary); border-top: 1px solid var(--color-border-tertiary); display: none; font-size: 12px; color: var(--color-text-secondary); line-height: 1.65; }
+  .answer-panel.open { display: block; }
+  .answer-panel strong { color: var(--color-text-primary); font-weight: 500; }
+  .stats { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 10px; }
+  .no-results { text-align: center; padding: 24px; font-size: 13px; color: var(--color-text-tertiary); }
+  .q-item.hidden { display: none; }
+  .section.all-hidden { display: none; }
+</style>
+<div class="qwrap">
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search questions..." oninput="filterAll()">
+  </div>
+  <div class="filters">
+    <span class="pill active" data-filter="all" onclick="setFilter('all',this)">All topics</span>
+    <span class="pill" data-filter="python" onclick="setFilter('python',this)">Python</span>
+    <span class="pill" data-filter="flask" onclick="setFilter('flask',this)">Flask</span>
+    <span class="pill" data-filter="fastapi" onclick="setFilter('fastapi',this)">FastAPI</span>
+    <span class="pill" data-filter="rest" onclick="setFilter('rest',this)">REST</span>
+    <span class="pill" data-filter="redis" onclick="setFilter('redis',this)">Redis</span>
+    <span class="pill" data-filter="rabbitmq" onclick="setFilter('rabbitmq',this)">RabbitMQ</span>
+    <span class="pill" data-filter="aws" onclick="setFilter('aws',this)">AWS</span>
+    <span class="pill" data-filter="security" onclick="setFilter('security',this)">Security</span>
+    <span class="pill" data-filter="db" onclick="setFilter('db',this)">Databases</span>
+  </div>
+  <div class="filters">
+    <span style="font-size:11px;color:var(--color-text-tertiary);padding-top:5px">Difficulty:</span>
+    <span class="pill diff-easy" data-diff="e" onclick="setDiff('e',this)">Easy</span>
+    <span class="pill diff-med" data-diff="m" onclick="setDiff('m',this)">Medium</span>
+    <span class="pill diff" data-diff="h" onclick="setDiff('h',this)">Hard</span>
+  </div>
+  <div class="stats" id="stats">Showing 100 questions</div>
+  <div id="sections"></div>
+</div>
+
+<script>
+const data = [
+  { sec: "Python", tag: "python", qs: [
+    { n:1, q:"What is the GIL (Global Interpreter Lock) and how does it affect multithreading?", d:"m", a:"The GIL is a mutex in CPython that allows only one thread to execute Python bytecode at a time. This means CPU-bound threads don't actually run in parallel — they take turns. For I/O-bound tasks (network calls, file reads) it's fine because the GIL is released during I/O. For CPU-bound work, use multiprocessing instead, which spawns separate processes each with their own GIL." },
+    { n:2, q:"What is the difference between a list and a tuple?", d:"e", a:"Lists are mutable (you can change elements), tuples are immutable. Tuples are faster to iterate, use less memory, and are hashable so they can be dict keys. Use tuples for fixed data (coordinates, RGB), lists for collections you'll modify." },
+    { n:3, q:"Explain Python's memory management and garbage collection.", d:"m", a:"Python uses reference counting as its primary mechanism — when an object's reference count hits 0, it's freed immediately. For circular references, Python has a cyclic garbage collector that runs periodically. The gc module lets you control this. Memory is managed in arenas, pools, and blocks." },
+    { n:4, q:"What are decorators and how do they work?", d:"m", a:"A decorator is a function that takes another function and returns a modified version. They use the @syntax as syntactic sugar. Under the hood, @my_decorator above def foo() is equivalent to foo = my_decorator(foo). They're used for logging, auth, caching, rate limiting — exactly what Flask and FastAPI use for route definitions." },
+    { n:5, q:"What is the difference between *args and **kwargs?", d:"e", a:"*args collects extra positional arguments into a tuple. **kwargs collects extra keyword arguments into a dict. They let you write functions that accept a variable number of arguments. Order must be: positional, *args, keyword-only, **kwargs." },
+    { n:6, q:"Explain Python generators and the yield keyword.", d:"m", a:"A generator is a function that uses yield instead of return. It produces values lazily — one at a time — rather than building the whole list in memory. Each call to next() resumes execution until the next yield. Great for streaming large datasets or infinite sequences." },
+    { n:7, q:"What are Python's dunder/magic methods? Give examples.", d:"m", a:"Dunder methods (double underscore) define how objects behave with Python's built-in operations. __init__ is the constructor, __str__ controls str() output, __len__ controls len(), __eq__ controls ==, __getitem__ enables indexing. They're the backbone of Python's data model." },
+    { n:8, q:"What is the difference between shallow copy and deep copy?", d:"m", a:"Shallow copy (copy.copy) creates a new object but references the same nested objects. Deep copy (copy.deepcopy) recursively copies everything — nested objects get new copies too. For flat structures they're identical; for nested (lists of lists, dicts of dicts) the difference matters." },
+    { n:9, q:"What are list comprehensions and when would you use a generator expression instead?", d:"e", a:"List comprehensions ([x*2 for x in range(10)]) build the whole list in memory. Generator expressions ((x*2 for x in range(10))) produce values lazily. Use generators when the list is large or you only need to iterate once — they're much more memory-efficient." },
+    { n:10, q:"Explain the difference between classmethod, staticmethod, and instance method.", d:"m", a:"Instance methods take self as first arg and access instance state. Class methods take cls and access class-level state — typically used as alternative constructors. Static methods take no implicit first arg — they're utility functions that logically belong to the class but don't need access to it." },
+    { n:11, q:"What is a Python context manager and how do you create one?", d:"m", a:"Context managers define setup and teardown via __enter__ and __exit__. The with statement calls them. You can create one via a class with those methods, or use @contextmanager decorator with yield. Used for file handles, DB connections, locks — anything needing guaranteed cleanup." },
+    { n:12, q:"What is the difference between is and == in Python?", d:"e", a:"== checks value equality. is checks identity — whether both variables point to the same object in memory. Use == for comparisons. is is mainly useful for None checks (if x is None) because None is a singleton." },
+    { n:13, q:"Explain Python's asyncio — what is an event loop?", d:"h", a:"asyncio is a concurrency framework built on cooperative multitasking. The event loop runs coroutines (async def functions) — when one hits an await, it suspends and lets another run. Unlike threads, no preemption — coroutines yield control explicitly. Perfect for I/O-bound tasks like HTTP requests, DB queries. FastAPI is built on this." },
+    { n:14, q:"What are Python's built-in data structures and their time complexities?", d:"m", a:"List: O(1) append/index, O(n) search/insert-middle. Dict: O(1) average get/set (hash table). Set: O(1) average add/lookup (hash table). Deque: O(1) append/pop from both ends. Knowing these matters for algorithm questions." },
+    { n:15, q:"What is the difference between mutable and immutable objects? Why does it matter?", d:"e", a:"Immutable objects (int, str, tuple, frozenset) cannot be changed after creation. Mutable objects (list, dict, set) can. Matters because: mutable objects as default function arguments is a classic bug (the default is shared across calls), and immutable objects are safe to use as dict keys." },
+  ]},
+  { sec: "Flask", tag: "flask", qs: [
+    { n:16, q:"What is Flask and how is it different from Django?", d:"e", a:"Flask is a micro-framework — it gives you routing, request/response handling, and Jinja2 templating, but nothing else by default. You add what you need (ORM, auth, etc.). Django is a batteries-included framework with ORM, admin, auth built in. Flask is better for APIs and microservices where you want control; Django for full web apps." },
+    { n:17, q:"What is the Flask application context and request context?", d:"m", a:"Flask has two contexts. Application context (g, current_app) holds app-level state for the duration of a request or CLI command. Request context (request, session) holds request-specific data and is pushed for each incoming request. Understanding this matters for testing and for accessing these proxies outside request handlers." },
+    { n:18, q:"How do you handle errors in Flask?", d:"m", a:"Use @app.errorhandler(404) decorator to register handlers for HTTP status codes or exception classes. You can also use abort(404) to raise HTTP errors from within views. For global exception handling, register a handler for Exception. Flask returns HTML by default — return jsonify for API errors." },
+    { n:19, q:"What are Flask Blueprints and why would you use them?", d:"m", a:"Blueprints let you organise a Flask app into modular components — e.g. a restaurants blueprint, an orders blueprint. Each blueprint registers its own routes, error handlers, and static files. You register them on the app with app.register_blueprint(). Essential for any non-trivial Flask app." },
+    { n:20, q:"How does Flask handle request data — what is the request object?", d:"e", a:"The request proxy object (from flask import request) provides access to all incoming data: request.json for JSON body, request.form for form data, request.args for query parameters, request.headers for headers, request.files for uploads. It's context-local — safe to use as a global." },
+    { n:21, q:"How do you implement authentication in Flask?", d:"m", a:"Common approaches: Flask-Login for session-based auth (stores user_id in cookie). JWT-based: validate token in a decorator or before_request hook. Flask-JWT-Extended is a popular library. You'd create a require_auth decorator that reads the Authorization header, verifies the JWT, and attaches the user to g." },
+    { n:22, q:"What is Flask-SQLAlchemy and what is the ORM pattern?", d:"m", a:"Flask-SQLAlchemy integrates SQLAlchemy ORM with Flask. ORM (Object-Relational Mapping) lets you interact with the database using Python objects instead of raw SQL. You define models as classes, and SQLAlchemy translates method calls to SQL. db.session.add(), db.session.commit() handle transactions." },
+    { n:23, q:"How do you manage configuration in Flask?", d:"m", a:"Flask reads config from app.config dict. You can load from a Python object (app.config.from_object()), a file, or environment variables. Common pattern: a config.py with DevelopmentConfig, ProductionConfig classes. Never hardcode secrets — load from environment variables or AWS Secrets Manager." },
+    { n:24, q:"What are Flask before_request and after_request hooks?", d:"m", a:"before_request runs before every request handler — used for auth checks, logging, setting up DB connections. after_request runs after the handler but before sending response — used for adding headers (CORS), logging response time. teardown_request runs even if an exception occurred." },
+    { n:25, q:"How does Flask handle CORS and why is it needed?", d:"m", a:"CORS (Cross-Origin Resource Sharing) is a browser security mechanism that blocks requests from a different origin than the server. For an API consumed by a frontend on a different domain, you need to add Access-Control-Allow-Origin headers. Flask-CORS library handles this, or you add headers in after_request." },
+  ]},
+  { sec: "FastAPI", tag: "fastapi", qs: [
+    { n:26, q:"What is FastAPI and what makes it different from Flask?", d:"e", a:"FastAPI is a modern Python web framework built on Starlette (ASGI) and Pydantic. Key differences: it's async-native, has automatic OpenAPI/Swagger docs, uses Python type hints for request validation, and is significantly faster than Flask. It's designed for building APIs rather than full web apps." },
+    { n:27, q:"What is Pydantic and how does FastAPI use it?", d:"m", a:"Pydantic is a data validation library that uses Python type hints. You define models as classes inheriting from BaseModel. FastAPI uses Pydantic models to automatically validate request bodies, serialize responses, and generate OpenAPI schemas. If validation fails, FastAPI returns a 422 with details — no manual validation needed." },
+    { n:28, q:"What is the difference between WSGI and ASGI?", d:"m", a:"WSGI (Web Server Gateway Interface) is synchronous — one request is handled at a time per worker. ASGI (Asynchronous Server Gateway Interface) supports async — a single worker can handle many concurrent requests by switching while waiting on I/O. Flask uses WSGI; FastAPI uses ASGI (via Uvicorn/Gunicorn). ASGI is essential for WebSockets too." },
+    { n:29, q:"How does FastAPI handle dependency injection?", d:"m", a:"FastAPI has a built-in Depends() system. You define a function that returns a value (e.g. get_db that yields a DB session, or get_current_user that validates a token). Then in your route: def my_route(db: Session = Depends(get_db)). FastAPI resolves dependencies automatically, handles cleanup (via yield), and supports nested dependencies." },
+    { n:30, q:"How do you define path parameters and query parameters in FastAPI?", d:"e", a:"Path params are declared in the route path and function signature: @app.get('/items/{item_id}') def get_item(item_id: int). Query params are function args not in the path: def get_items(skip: int = 0, limit: int = 10). FastAPI automatically parses, validates, and documents both." },
+    { n:31, q:"How does FastAPI generate automatic documentation?", d:"e", a:"FastAPI reads type hints, Pydantic models, and docstrings to auto-generate OpenAPI (Swagger) docs at /docs and ReDoc at /redoc. No extra work needed. This is a huge advantage in API-first development — the docs are always in sync with the code." },
+    { n:32, q:"How do you handle background tasks in FastAPI?", d:"m", a:"FastAPI has a BackgroundTasks class you can inject into routes. Add tasks with background_tasks.add_task(func, args). They run after the response is sent. For heavy work, use Celery + Redis/RabbitMQ instead — BackgroundTasks are lightweight and run in the same process." },
+    { n:33, q:"How do you implement middleware in FastAPI?", d:"m", a:"Add middleware with @app.middleware('http') decorator or app.add_middleware(). Middleware wraps every request — you can modify request/response, measure timing, add headers. For common needs (CORS, GZip, session), FastAPI/Starlette have built-in middleware classes." },
+    { n:34, q:"What are FastAPI routers and how do you use them?", d:"m", a:"APIRouter is FastAPI's equivalent of Flask Blueprints. Create a router per feature area (restaurants, orders), define routes on it, then include it on the main app with app.include_router(router, prefix='/restaurants'). Supports shared dependencies, tags for docs, and response models." },
+    { n:35, q:"How does FastAPI handle async database access?", d:"h", a:"Use an async-compatible ORM or driver: SQLAlchemy 2.0 with async session (AsyncSession), databases library, or Tortoise-ORM. Create an async dependency that yields the session. Call await db.execute() etc. inside async route handlers. Blocking sync DB calls inside async handlers will block the event loop — always use async DB drivers in async FastAPI." },
+  ]},
+  { sec: "REST API Design", tag: "rest", qs: [
+    { n:36, q:"What are the 6 constraints of REST?", d:"m", a:"1. Client-Server separation. 2. Statelessness — each request contains all info needed. 3. Cacheability. 4. Uniform interface (consistent URLs, HTTP methods). 5. Layered system — client doesn't know if it's talking to origin server or proxy. 6. Code on demand (optional) — server can send executable code." },
+    { n:37, q:"What is the difference between PUT and PATCH?", d:"e", a:"PUT replaces the entire resource with what you send — if you omit a field, it's removed. PATCH partially updates a resource — only the fields you send are changed. For Uber Eats: PUT /orders/123 would replace the whole order; PATCH /orders/123 with {status: 'delivered'} just updates status." },
+    { n:38, q:"What HTTP status codes should a REST API use and when?", d:"m", a:"200 OK (success), 201 Created (resource created), 204 No Content (success, nothing to return), 400 Bad Request (invalid input), 401 Unauthorized (not authenticated), 403 Forbidden (authenticated but no permission), 404 Not Found, 409 Conflict (duplicate), 422 Unprocessable Entity (validation failed), 429 Too Many Requests, 500 Internal Server Error." },
+    { n:39, q:"What is idempotency and which HTTP methods are idempotent?", d:"m", a:"An operation is idempotent if calling it multiple times produces the same result as calling it once. GET, PUT, DELETE, HEAD are idempotent. POST is not — calling POST /orders twice creates two orders. Idempotency matters for retry logic: you can safely retry a PUT after a network failure; retrying a POST might duplicate data." },
+    { n:40, q:"How should you version a REST API?", d:"m", a:"Three approaches: URL versioning (/v1/restaurants — most common, explicit), header versioning (Accept: application/vnd.api.v1+json — cleaner URLs, harder to test in browser), query param (?version=1 — easy but pollutes params). URL versioning is preferred for public APIs. Never break existing clients — always version before making breaking changes." },
+    { n:41, q:"What is HATEOAS?", d:"h", a:"Hypermedia As The Engine Of Application State — a REST constraint where responses include links to related actions. E.g. a GET /orders/123 response includes links: {self: '/orders/123', cancel: '/orders/123/cancel', track: '/orders/123/tracking'}. Client doesn't need to hardcode URLs — it discovers them from responses. Rarely fully implemented in practice but good to know." },
+    { n:42, q:"How do you handle pagination in a REST API?", d:"m", a:"Three strategies: offset pagination (?page=2&limit=20 — simple, but slow on large offsets), cursor pagination (?cursor=eyJpZCI6MTAwfQ — efficient, great for real-time data), keyset pagination (?after_id=100 — fast index use). For Uber Eats nearby restaurants, cursor pagination is better — the list changes as couriers move." },
+    { n:43, q:"What is the difference between authentication and authorization?", d:"e", a:"Authentication is proving who you are (login, token validation). Authorization is determining what you're allowed to do (can this user cancel this order?). You must authenticate before you can authorize. In code: authentication happens at the API Gateway/middleware; authorization happens in service logic." },
+    { n:44, q:"How do you design REST endpoints for nested resources?", d:"m", a:"For resources that belong to a parent: /restaurants/{id}/menu (get menu for a restaurant), /orders/{id}/items (get items in an order). Avoid going deeper than 2-3 levels — it becomes hard to maintain. For very deep nesting, flatten: instead of /users/{id}/orders/{oid}/items, use /orders/{oid}/items with user inferred from auth token." },
+    { n:45, q:"What is rate limiting and how is it implemented in a REST API?", d:"m", a:"Rate limiting caps how many requests a client can make in a time window to prevent abuse and ensure fair usage. Strategies: fixed window (100 requests per minute), sliding window (smoother), token bucket (allows bursts). Implemented at the API Gateway (AWS API Gateway has it built in). Return 429 Too Many Requests with Retry-After header when exceeded." },
+    { n:46, q:"What is the difference between REST and GraphQL?", d:"m", a:"REST has fixed endpoints returning fixed shapes — clients get what the server defines. GraphQL has one endpoint and clients specify exactly what fields they want — avoids over-fetching and under-fetching. REST is simpler and better for public APIs; GraphQL is great when clients have varying data needs (mobile vs web)." },
+    { n:47, q:"How do you handle file uploads in a REST API?", d:"m", a:"Two approaches: multipart/form-data (upload file directly in the request body — simple but ties up the server), or presigned URLs (client asks API for a temporary S3 upload URL, uploads directly to S3 — offloads work from your server). Presigned URLs are the correct pattern at scale." },
+    { n:48, q:"What are HTTP headers relevant to REST API security?", d:"m", a:"Content-Security-Policy (prevents XSS), X-Content-Type-Options: nosniff (prevents MIME sniffing), Strict-Transport-Security (force HTTPS), X-Frame-Options (prevents clickjacking), Authorization (carries Bearer token), CORS headers (Access-Control-Allow-Origin). Add these in middleware." },
+    { n:49, q:"What is the difference between synchronous and asynchronous API design?", d:"m", a:"Synchronous: client sends request, waits, gets response (simple, works for fast ops). Asynchronous: client sends request, gets 202 Accepted + a job ID, polls or gets webhook when done (for long-running operations like processing an order). POST /orders returns 202 with order_id; client polls GET /orders/{id} for status." },
+    { n:50, q:"How do you document a REST API?", d:"e", a:"OpenAPI Specification (formerly Swagger) is the standard — a YAML/JSON file describing all endpoints, parameters, request/response schemas. FastAPI generates this automatically. Tools: Swagger UI (interactive), ReDoc (readable). For Flask: Flask-RESTX or Flasgger. Good docs include auth info, error codes, and example payloads." },
+  ]},
+  { sec: "Redis & Caching", tag: "redis", qs: [
+    { n:51, q:"What is Redis and what data structures does it support?", d:"e", a:"Redis is an in-memory key-value store. Data structures: String (plain values, counters), List (ordered, push/pop from both ends), Hash (field-value pairs — like a dict), Set (unique unordered values), Sorted Set (unique values with scores — great for leaderboards), Stream (append-only log). Each structure has O(1) or O(log n) operations." },
+    { n:52, q:"What is a cache hit and cache miss? What is cache invalidation?", d:"e", a:"Cache hit: requested data is in Redis, returned immediately. Cache miss: not in cache, must fetch from DB, store in Redis, then return. Cache invalidation is the hard part — when DB data changes, the cache must be updated or deleted. Strategies: TTL expiry (auto-expire after N seconds), write-through (update cache on every write), cache-aside (app manages it)." },
+    { n:53, q:"What are common Redis eviction policies?", d:"m", a:"When Redis runs out of memory, eviction policies decide what to remove. allkeys-lru (evict least recently used key from all keys — most common for caches), volatile-lru (LRU but only keys with TTL set), allkeys-random, noeviction (return error when full — use for data you can't lose). Set maxmemory and maxmemory-policy in config." },
+    { n:54, q:"What is Redis pub/sub and when would you use it vs RabbitMQ?", d:"m", a:"Redis pub/sub lets publishers broadcast messages to channels and subscribers receive them. It's fire-and-forget — if no subscriber is listening, the message is lost. Unlike RabbitMQ, messages are not persisted or queued. Use Redis pub/sub for ephemeral real-time events (live chat, notifications you don't need to guarantee delivery of). Use RabbitMQ when delivery guarantees matter." },
+    { n:55, q:"What is a Redis TTL and how do you use it?", d:"e", a:"TTL (Time To Live) sets an expiry on a key — Redis automatically deletes it after N seconds. Set with SETEX key seconds value or EXPIRE key seconds. Check remaining time with TTL key. Used heavily for sessions (expire after 24h), rate limiting (reset counter every minute), and caching (refresh stale data)." },
+    { n:56, q:"How would you implement a rate limiter using Redis?", d:"h", a:"Fixed window: INCR user:123:requests:2024-01-01-14-05 — increment a key per user per time window, set TTL to window length, reject if value exceeds limit. Token bucket: more complex but allows bursts. Sliding window: use a Sorted Set with timestamps as scores, count entries in last N seconds. Redis is ideal because operations are atomic and sub-millisecond." },
+    { n:57, q:"What is Redis Cluster and when do you need it?", d:"h", a:"Redis Cluster shards data across multiple nodes using consistent hashing — keys are distributed across 16,384 hash slots. You need it when your dataset exceeds single-node memory or when you need horizontal write scaling. ElastiCache handles cluster management for you on AWS. For most apps, a single Redis instance with read replicas is sufficient." },
+    { n:58, q:"How do you prevent a cache stampede (thundering herd)?", d:"h", a:"A cache stampede happens when a popular key expires and hundreds of requests simultaneously hit the DB to rebuild it. Solutions: probabilistic early expiration (randomly rebuild slightly before expiry), locking (one request rebuilds, others wait), background refresh (async refresh before key expires). In Redis: use SET with NX (only set if not exists) for distributed locking." },
+  ]},
+  { sec: "RabbitMQ & Messaging", tag: "rabbitmq", qs: [
+    { n:59, q:"What are the core concepts in RabbitMQ — producer, exchange, queue, consumer?", d:"e", a:"Producer publishes messages to an exchange. Exchange routes messages to queues based on routing rules (binding keys). Queue stores messages until a consumer picks them up. Consumer processes messages from a queue. Producers never send directly to queues — always via exchanges. This decoupling is the core design." },
+    { n:60, q:"What are the different exchange types in RabbitMQ?", d:"m", a:"Direct: routes to queue whose binding key exactly matches the routing key. Fanout: broadcasts to all bound queues (ignore routing key). Topic: pattern matching on routing key (order.* matches order.placed and order.cancelled). Headers: routes based on message headers. Direct is most common; fanout is great for broadcast events like order status updates." },
+    { n:61, q:"What is message acknowledgement and why is it important?", d:"m", a:"When a consumer receives a message, it must ACK (acknowledge) it for RabbitMQ to remove it from the queue. If the consumer dies before ACKing, RabbitMQ redelivers the message to another consumer. Without ACKs, you'd lose messages on consumer crash. Never ACK before you've fully processed — ACK after saving to DB." },
+    { n:62, q:"What is a Dead Letter Queue (DLQ)?", d:"m", a:"A DLQ receives messages that couldn't be processed — either rejected, expired (TTL), or exceeded max retry count. Instead of losing failed messages, they go to the DLQ for inspection and manual reprocessing. Critical for production: always configure a DLQ so failed messages are never silently dropped." },
+    { n:63, q:"What is the difference between RabbitMQ and Kafka?", d:"m", a:"RabbitMQ is a message broker — messages are consumed and deleted, routing is flexible via exchanges, great for task queues. Kafka is an event log — messages are retained for a configurable period, consumers read at their own offset, supports replay. RabbitMQ for discrete tasks (send email, assign courier); Kafka for event streams, analytics, audit logs." },
+    { n:64, q:"How do you handle message retry logic in RabbitMQ?", d:"m", a:"On failure, NACK the message with requeue=true (sends back to queue) or requeue=false (sends to DLQ). For retry with backoff: use separate retry queues with increasing TTLs (retry-5s, retry-30s, retry-5m) — expired messages route back to the main queue. Libraries like aio-pika handle retry logic automatically." },
+    { n:65, q:"What is Amazon MQ and how does it relate to RabbitMQ?", d:"e", a:"Amazon MQ is AWS's managed message broker service that supports RabbitMQ and ActiveMQ. It handles provisioning, patching, HA setup, and failover. You connect to it exactly like self-hosted RabbitMQ using AMQP protocol. For Uber Eats on AWS, you'd use Amazon MQ rather than managing RabbitMQ on EC2 yourself." },
+    { n:66, q:"What is the AMQP protocol?", d:"m", a:"AMQP (Advanced Message Queuing Protocol) is the wire-level protocol RabbitMQ uses. It defines how clients connect, authenticate, create channels, declare exchanges/queues, publish and consume messages. Python clients: pika (sync), aio-pika (async). You rarely interact with AMQP directly — the client library handles it." },
+  ]},
+  { sec: "AWS Services", tag: "aws", qs: [
+    { n:67, q:"What is the difference between EC2, ECS, and Lambda?", d:"m", a:"EC2: virtual machines you manage yourself. ECS: runs Docker containers on EC2 or Fargate (serverless containers). Lambda: serverless functions — upload code, AWS runs it per request, you pay per invocation. For Uber Eats microservices: ECS/Fargate is best — containerised, scales automatically, no server management. Lambda for event-triggered work (image processing on S3 upload)." },
+    { n:68, q:"What is a VPC and why do you put services inside one?", d:"m", a:"VPC (Virtual Private Cloud) is an isolated network in AWS. Resources inside a VPC are not publicly accessible by default. You control ingress/egress with security groups and NACLs. For Uber Eats: only the ALB and API Gateway are in public subnets. ECS services, RDS, ElastiCache are in private subnets — no direct internet access, massively reducing attack surface." },
+    { n:69, q:"What is the difference between horizontal and vertical scaling? How does AWS support both?", d:"m", a:"Vertical scaling: give one machine more CPU/RAM (scale up). Horizontal scaling: add more machines (scale out). AWS supports vertical via EC2 instance type changes. Horizontal via Auto Scaling Groups (ECS auto-scales task count), read replicas (RDS), ElastiCache cluster. Horizontal is preferred for web services — no single point of failure." },
+    { n:70, q:"What is IAM and what is the principle of least privilege?", d:"m", a:"IAM (Identity and Access Management) controls who can do what in AWS. You create roles with specific permissions and assign them to services. Least privilege: give each service only the permissions it needs — an ECS task running the Order Service should only be able to read/write to its own DynamoDB table, not touch S3 or other services." },
+    { n:71, q:"What is CloudWatch and what can you monitor with it?", d:"e", a:"CloudWatch collects metrics (CPU, memory, request count, error rate), logs (application logs streamed from containers), and alarms (trigger alerts or auto-scaling when thresholds are crossed). For Uber Eats: alarm if RabbitMQ queue depth grows (consumers falling behind), if RDS CPU spikes, if 5xx error rate exceeds 1%." },
+    { n:72, q:"What is the difference between AWS Secrets Manager and AWS Parameter Store?", d:"m", a:"Both store secrets. Secrets Manager: automatic rotation of credentials (rotates DB passwords, API keys on a schedule), higher cost, designed for secrets. Parameter Store: cheaper, no auto-rotation, good for config values and non-sensitive parameters. Use Secrets Manager for DB passwords and API keys; Parameter Store for feature flags and config." },
+    { n:73, q:"What is Amazon RDS Aurora and how is it different from standard RDS?", d:"m", a:"Aurora is AWS's cloud-native relational DB compatible with PostgreSQL and MySQL. Key differences: storage auto-scales up to 128TB, up to 15 read replicas, faster failover than standard RDS, serverless option. Under the hood, storage is distributed across 3 AZs in 6 copies. For Uber Eats: Aurora PostgreSQL is a great choice for orders and user data." },
+    { n:74, q:"What is ElastiCache and what engines does it support?", d:"e", a:"ElastiCache is AWS's managed in-memory caching service. Supports Redis and Memcached. Redis mode supports clustering, replication, persistence, and pub/sub. Memcached is simpler — just a cache, no persistence. For Uber Eats, ElastiCache for Redis is the choice — you get Redis's data structures and pub/sub alongside caching." },
+    { n:75, q:"What is Amazon CloudFront and what is an edge location?", d:"e", a:"CloudFront is AWS's CDN — it caches content at edge locations (data centres close to users) globally. When a user in Toronto requests a restaurant image, CloudFront serves it from the nearest edge location, not from the origin S3 bucket in us-east-1. Reduces latency and offloads traffic from your origin. Edge locations number in the hundreds worldwide." },
+    { n:76, q:"What is Auto Scaling and how does it work with ECS?", d:"m", a:"Auto Scaling automatically adjusts the number of running instances based on metrics. With ECS, you define a scaling policy: scale out (add tasks) when CPU > 70% for 3 minutes, scale in (remove tasks) when CPU < 30%. AWS Application Auto Scaling manages ECS task count. Combine with ALB — new tasks automatically register and receive traffic." },
+  ]},
+  { sec: "Security", tag: "security", qs: [
+    { n:77, q:"What is JWT and how does it work?", d:"m", a:"JWT (JSON Web Token) has three parts: header (algorithm), payload (claims like user_id, role, exp), signature (header + payload signed with a secret). Server creates and signs it at login. Client sends it in Authorization: Bearer <token> header. Server verifies signature — if valid, trusts the claims without a DB lookup. Never store sensitive data in payload — it's base64 encoded, not encrypted." },
+    { n:78, q:"What is the difference between JWT and session-based authentication?", d:"m", a:"Session-based: server stores session in DB/Redis, sends session ID cookie to client. Every request looks up the session — stateful. JWT: server stores nothing, client sends signed token — stateless. JWT scales better (no session lookup), but you can't instantly invalidate a token (it's valid until expiry). For stateless APIs, JWT is preferred." },
+    { n:79, q:"What is OAuth2 and how does it work?", d:"m", a:"OAuth2 is an authorisation framework for delegated access. Flow: user clicks 'Login with Google', redirected to Google, grants permission, Google returns auth code, your server exchanges it for access token, you verify token and create your own JWT. You never see the user's Google password. Common flows: Authorization Code (web), PKCE (mobile), Client Credentials (service-to-service)." },
+    { n:80, q:"What is SQL injection and how do you prevent it?", d:"e", a:"SQL injection is when an attacker injects SQL code via input fields to manipulate DB queries. E.g. username = ' OR 1=1 -- ' bypasses login. Prevention: always use parameterised queries / prepared statements (never string concatenation), use an ORM (SQLAlchemy handles this), validate and sanitise all inputs. ORMs make injection nearly impossible by design." },
+    { n:81, q:"What is HTTPS/TLS and why is it required for APIs?", d:"e", a:"TLS (Transport Layer Security) encrypts data in transit between client and server. Without it, tokens, passwords, and API data are visible to anyone intercepting network traffic (man-in-the-middle). HTTPS = HTTP over TLS. For APIs: terminate TLS at the load balancer/API Gateway, use HSTS headers, redirect all HTTP to HTTPS. Never run a production API over plain HTTP." },
+    { n:82, q:"What is a WAF and what attacks does it protect against?", d:"m", a:"WAF (Web Application Firewall) inspects HTTP traffic at layer 7 and blocks malicious requests. Protects against: SQL injection, XSS (cross-site scripting), CSRF, bot scraping, DDoS at the application layer, known CVE exploit patterns. AWS WAF lets you define rules (block IPs, rate limit by IP, block requests matching patterns). Sits in front of ALB or CloudFront." },
+    { n:83, q:"What is encryption at rest vs encryption in transit?", d:"e", a:"Encryption in transit: data encrypted while moving over a network (HTTPS/TLS). Encryption at rest: data encrypted while stored on disk. AWS KMS manages encryption keys. RDS, S3, ElastiCache all support encryption at rest with AES-256. For PII and payment data, both are required. KMS lets you control key rotation and audit access." },
+    { n:84, q:"What is the OWASP Top 10?", d:"m", a:"The OWASP Top 10 is the most critical web application security risks: 1. Broken Access Control, 2. Cryptographic Failures, 3. Injection, 4. Insecure Design, 5. Security Misconfiguration, 6. Vulnerable Components, 7. Authentication Failures, 8. Integrity Failures, 9. Logging Failures, 10. SSRF. Knowing these shows security awareness — mention 2-3 relevant ones for APIs." },
+    { n:85, q:"How do you store passwords securely?", d:"m", a:"Never store plain text or reversible encryption. Use a password hashing algorithm: bcrypt (most common), Argon2 (winner of Password Hashing Competition — recommended), or scrypt. These are intentionally slow and include salting (random value added before hashing to prevent rainbow table attacks). In Python: passlib or bcrypt library. Never use MD5 or SHA1 for passwords." },
+    { n:86, q:"What is CORS and when do you need it?", d:"m", a:"CORS (Cross-Origin Resource Sharing) is a browser security policy that blocks JavaScript from making requests to a different origin (domain/port/protocol) than the page was loaded from. Your React frontend on app.ubereats.com can't call api.ubereats.com by default. The API must return Access-Control-Allow-Origin headers to permit it. CORS only applies to browsers — Postman and server-to-server calls are unaffected." },
+  ]},
+  { sec: "Databases", tag: "db", qs: [
+    { n:87, q:"What is the difference between SQL and NoSQL databases?", d:"e", a:"SQL (relational): structured tables with schema, supports JOINs and transactions, ACID guarantees. Best for structured, relational data. NoSQL: various models (document, key-value, column, graph), flexible schema, scales horizontally more easily, often eventual consistency. Use SQL for orders and user data (need transactions); NoSQL for session data, catalogs, high-write telemetry." },
+    { n:88, q:"What are database indexes and when should you add them?", d:"m", a:"An index is a data structure (usually B-tree) that speeds up lookups at the cost of write performance and storage. Add indexes on columns you filter or sort by frequently: WHERE user_id = ?, ORDER BY created_at. For Uber Eats: index on orders.user_id, orders.status, restaurants.location (spatial index). Don't over-index — each index slows down INSERT/UPDATE." },
+    { n:89, q:"What is the N+1 query problem?", d:"m", a:"N+1 happens when you fetch N records, then make N separate queries to get related data. E.g. fetch 20 orders, then loop and query each order's items — 21 queries total. Fix: use JOIN to fetch everything in one query, or use eager loading (SQLAlchemy's joinedload). ORMs make N+1 easy to accidentally create and hard to notice until scale." },
+    { n:90, q:"What is a database transaction and ACID?", d:"m", a:"A transaction groups multiple DB operations into one atomic unit. ACID: Atomicity (all succeed or all fail), Consistency (DB stays valid), Isolation (transactions don't interfere), Durability (committed data survives crashes). Critical for financial/order data — you never want a payment charged without an order created, or vice versa." },
+    { n:91, q:"What is database sharding?", d:"h", a:"Sharding splits a large database horizontally across multiple servers — each shard holds a subset of rows. E.g. shard by user_id % 4 — user 1 goes to shard 1, user 2 to shard 2. Enables horizontal scaling beyond single-machine limits. Downsides: JOINs across shards are impossible, cross-shard transactions are complex. Used at very large scale." },
+    { n:92, q:"What is the difference between a read replica and a primary database?", d:"m", a:"Primary handles all writes. Read replicas are copies that sync from primary and handle read queries. Distributes read load — analytics, reporting, list queries hit replicas. Adds some read latency (replication lag). In RDS Aurora, up to 15 read replicas with very low lag. Direct all write operations to primary, reads to replicas via a read endpoint." },
+    { n:93, q:"What is PostGIS and how does it enable geospatial queries?", d:"m", a:"PostGIS is a PostgreSQL extension that adds geometric and geographic data types and functions. You store restaurant coordinates as GEOMETRY(Point, 4326) and run spatial queries: ST_DWithin(restaurant.location, ST_MakePoint(lng, lat)::geography, 5000) returns all restaurants within 5km. It uses R-tree spatial indexes for fast radius queries — much faster than calculating distance in application code." },
+    { n:94, q:"What is connection pooling and why is it important?", d:"m", a:"Opening a new DB connection is expensive (TCP handshake, auth). A connection pool maintains a set of open connections that requests reuse. PgBouncer is a popular PostgreSQL pooler. SQLAlchemy has built-in pooling. Without pooling, high traffic overwhelms DB with connection overhead. For FastAPI: use asyncpg with a connection pool, configure pool_size and max_overflow." },
+    { n:95, q:"What is eventual consistency vs strong consistency?", d:"h", a:"Strong consistency: after a write, all reads see the new value immediately. Eventual consistency: writes propagate asynchronously — reads may see stale data temporarily, but will eventually be consistent. RDS read replicas are eventually consistent (small lag). Redis cache is eventually consistent with DB (until invalidated). For order status, you need strong consistency — use the primary DB." },
+  ]},
+  { sec: "General Architecture", tag: "aws", qs: [
+    { n:96, q:"What is a microservices architecture and what are its tradeoffs?", d:"m", a:"Microservices splits an application into small, independently deployable services each owning its data. Benefits: independent scaling, independent deployment, technology flexibility, fault isolation. Downsides: network latency between services, distributed system complexity, harder debugging, data consistency challenges across services. For Uber Eats: Restaurant, Order, Courier, and Notification services are natural boundaries." },
+    { n:97, q:"What is the difference between a message queue and a REST call between services?", d:"m", a:"REST call: synchronous, caller waits for response, tight coupling — if downstream service is down, caller fails. Message queue: asynchronous, caller publishes and moves on, loose coupling — if downstream is down, message waits in queue. Use REST for real-time data needs (get restaurant menu). Use queues for events that can be processed later (send notification, update analytics)." },
+    { n:98, q:"What is a health check endpoint and why do load balancers need it?", d:"e", a:"A health check endpoint (typically GET /health) returns 200 if the service is healthy. Load balancers poll it every few seconds — if a service returns non-200 or times out, the load balancer removes it from the pool and stops sending traffic. This enables zero-downtime deployments and automatic recovery from crashed instances." },
+    { n:99, q:"What is the CAP theorem?", d:"h", a:"CAP: in a distributed system you can only guarantee 2 of 3: Consistency (all nodes see same data), Availability (every request gets a response), Partition Tolerance (system works despite network failures). Network partitions are inevitable, so you choose CP (consistent but may be unavailable) or AP (available but may be stale). RDS is CP; Cassandra is AP. Know which your system needs." },
+    { n:100, q:"How would you approach debugging a slow API endpoint in production?", d:"h", a:"Structured approach: 1. Check CloudWatch metrics — is it all requests or specific users/endpoints? 2. Check X-Ray traces — where is time spent (DB query, external call, compute)? 3. Check RDS slow query log — is there a missing index? 4. Check Redis hit rate — is the cache being bypassed? 5. Check RabbitMQ queue depth — is a consumer backed up? 6. Add timing logs around suspected code. Never guess without data." },
+  ]},
+];
+
+let activeFilter = 'all';
+let activeDiff = null;
+let openAnswers = new Set();
+
+function render() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const sections = document.getElementById('sections');
+  let total = 0;
+  sections.innerHTML = '';
+  data.forEach(sec => {
+    const secEl = document.createElement('div');
+    secEl.className = 'section';
+    let visCount = 0;
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'sec-body';
+    sec.qs.forEach(q => {
+      const matchFilter = activeFilter === 'all' || sec.tag === activeFilter;
+      const matchDiff = !activeDiff || q.d === activeDiff;
+      const matchSearch = !search || q.q.toLowerCase().includes(search);
+      const visible = matchFilter && matchDiff && matchSearch;
+      if (visible) { visCount++; total++; }
+      const qEl = document.createElement('div');
+      qEl.className = 'q-item' + (visible ? '' : ' hidden');
+      qEl.innerHTML = `<span class="q-num">#${q.n}</span><span class="q-text">${q.q}</span><span class="q-badge badge-${q.d}">${q.d==='e'?'Easy':q.d==='m'?'Medium':'Hard'}</span>`;
+      qEl.onclick = () => toggleAnswer(q.n, q.a, qEl);
+      bodyEl.appendChild(qEl);
+      const aEl = document.createElement('div');
+      aEl.className = 'answer-panel' + (openAnswers.has(q.n) ? ' open' : '');
+      aEl.id = 'ans-' + q.n;
+      aEl.innerHTML = q.a;
+      bodyEl.appendChild(aEl);
+    });
+    const headerEl = document.createElement('div');
+    headerEl.className = 'sec-header';
+    headerEl.innerHTML = `<span class="sec-title">${sec.sec}</span><span class="sec-count">${visCount} question${visCount!==1?'s':''}</span><span class="sec-chev" id="chev-${sec.sec}">▼</span>`;
+    headerEl.onclick = () => toggleSection(bodyEl, sec.sec);
+    secEl.appendChild(headerEl);
+    secEl.appendChild(bodyEl);
+    if (visCount === 0) secEl.classList.add('all-hidden');
+    sections.appendChild(secEl);
+  });
+  document.getElementById('stats').textContent = `Showing ${total} of 100 questions`;
+}
+
+function toggleSection(bodyEl, name) {
+  const isOpen = bodyEl.classList.contains('open');
+  bodyEl.classList.toggle('open', !isOpen);
+  const chev = document.getElementById('chev-' + name);
+  if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+function toggleAnswer(n, a, qEl) {
+  const aEl = document.getElementById('ans-' + n);
+  if (!aEl) return;
+  const isOpen = aEl.classList.contains('open');
+  aEl.classList.toggle('open', !isOpen);
+  if (isOpen) openAnswers.delete(n); else openAnswers.add(n);
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.pill[data-filter]').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function setDiff(d, el) {
+  if (activeDiff === d) { activeDiff = null; el.classList.remove('active'); }
+  else {
+    activeDiff = d;
+    document.querySelectorAll('.pill[data-diff]').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+  render();
+}
+
+function filterAll() { render(); }
+
+render();
+</script>
